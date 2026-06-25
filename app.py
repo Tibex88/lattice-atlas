@@ -277,6 +277,10 @@ def dataset_property_keys(dataset):
     return tuple(RESIDUATED_PROPERTIES.keys()) + tuple(SPECIAL_ALGEBRAS.keys())
 
 
+def structural_dataset(dataset):
+    return "lat" if dataset == "extlat" else dataset
+
+
 def property_options(dataset):
     if dataset in {"lat", "extlat"}:
         return [
@@ -712,6 +716,84 @@ def filter_bounds(dataset, n):
     return result
 
 
+@lru_cache(maxsize=64)
+def property_count_tables(dataset, n):
+    options = property_options(dataset)
+    if not options:
+        return []
+    structural = structural_dataset(dataset)
+    keys = dataset_property_keys(structural)
+    masks = dataset_property_masks(structural, n)
+    key_to_bit = {key: bit for bit, key in enumerate(keys)}
+    total = len(masks)
+    groups = []
+    for kind in ("property", "algebra"):
+        rows = []
+        for option in options:
+            if option["kind"] != kind:
+                continue
+            bit = key_to_bit.get(option["key"])
+            if bit is None:
+                continue
+            mask = 1 << bit
+            count = sum(1 for value in masks if value & mask)
+            rows.append(
+                {
+                    "key": option["key"],
+                    "label": option["label"],
+                    "description": option["description"],
+                    "count": count,
+                    "ratio": (count / total) if total else 0,
+                }
+            )
+        if rows:
+            rows.sort(key=lambda row: (-row["count"], row["label"].lower()))
+            groups.append(
+                {
+                    "kind": kind,
+                    "title": "Property Counts" if kind == "property" else "Algebra Class Counts",
+                    "total": total,
+                    "rows": rows,
+                }
+            )
+    return groups
+
+
+@lru_cache(maxsize=64)
+def appendix_dimensions(dataset, n):
+    dist = width_height_distribution(structural_dataset(dataset), n)
+    width_values = [item["value"] for item in dist["widths"]]
+    height_values = [item["value"] for item in dist["heights"]]
+    cell_map = {(cell["height"], cell["width"]): cell["count"] for cell in dist["cells"]}
+    rows = []
+    for height in height_values:
+        cells = []
+        row_total = 0
+        for width in width_values:
+            count = cell_map.get((height, width), 0)
+            row_total += count
+            cells.append({"width": width, "count": count})
+        rows.append({"height": height, "total": row_total, "cells": cells})
+    return {
+        "dataset": dataset,
+        "n": n,
+        "widths": dist["widths"],
+        "heights": dist["heights"],
+        "rows": rows,
+        "total": sum(item["count"] for item in dist["widths"]),
+    }
+
+
+@lru_cache(maxsize=64)
+def appendix_tables(dataset, n):
+    return {
+        "dataset": dataset,
+        "n": n,
+        "property_groups": property_count_tables(dataset, n),
+        "dimensions": appendix_dimensions(dataset, n),
+    }
+
+
 def decode_reslat_family_item(n, index, enc):
     structure = ResiduatedLattice.decode(enc, n)
     return {
@@ -802,6 +884,11 @@ class Handler(SimpleHTTPRequestHandler):
             n = parse_int(params, "n", default=1)
             limit = parse_int(params, "limit", default=12)
             self.send_json(extlat_rankings(n, limit))
+            return
+        if parsed.path == "/api/appendix-tables":
+            dataset = parse_dataset(params)
+            n = parse_int(params, "n", default=1)
+            self.send_json(appendix_tables(dataset, n))
             return
         if parsed.path == "/api/reslat-family":
             n = parse_int(params, "n")
