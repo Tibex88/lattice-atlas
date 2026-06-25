@@ -331,6 +331,19 @@ def property_values(dataset, structure):
     return values
 
 
+def property_results(dataset, values):
+    return [
+        {
+            "key": option["key"],
+            "label": option["label"],
+            "kind": option["kind"],
+            "description": option["description"],
+            "value": bool(values.get(option["key"], False)),
+        }
+        for option in property_options(dataset)
+    ]
+
+
 def property_mask(dataset, structure):
     values = property_values(dataset, structure)
     mask = 0
@@ -367,9 +380,14 @@ def decode_entry(dataset, n, index):
     if dataset == "reslat":
         structure = ResiduatedLattice.decode(enc, n)
         mult_table = structure._mult
+        arrow_table = structure._arrow
+        negation = [structure.neg(i) for i in range(n)]
     else:
         structure = BoundedLattice.decode(enc, n)
         mult_table = None
+        arrow_table = None
+        negation = None
+    values = property_values(dataset, structure)
     return {
         "dataset": dataset,
         "n": n,
@@ -380,9 +398,12 @@ def decode_entry(dataset, n, index):
         "edges": hasse_edges(structure),
         "levels": [sum(1 for j in range(n) if structure.leq(j, i)) - 1 for i in range(n)],
         "mult_table": mult_table,
+        "arrow_table": arrow_table,
+        "negation": negation,
         "width": structure.width(),
         "height": structure.height(),
-        "properties": property_values(dataset, structure),
+        "properties": values,
+        "property_items": property_results(dataset, values),
     }
 
 
@@ -794,6 +815,48 @@ def appendix_tables(dataset, n):
     }
 
 
+@lru_cache(maxsize=64)
+def cooccurrence_matrix(dataset, n):
+    options = property_options(dataset)
+    if not options:
+        return {"dataset": dataset, "n": n, "labels": [], "cells": [], "total": 0}
+    structural = structural_dataset(dataset)
+    masks = dataset_property_masks(structural, n)
+    keys = dataset_property_keys(structural)
+    bit_by_key = {key: bit for bit, key in enumerate(keys)}
+    entries = [option for option in options if option["key"] in bit_by_key]
+    labels = [
+        {
+            "key": option["key"],
+            "label": option["label"],
+            "kind": option["kind"],
+        }
+        for option in entries
+    ]
+    cells = []
+    for row_index, row_option in enumerate(entries):
+        row_mask = 1 << bit_by_key[row_option["key"]]
+        for col_index, col_option in enumerate(entries):
+            if col_index < row_index:
+                continue
+            col_mask = 1 << bit_by_key[col_option["key"]]
+            count = sum(1 for value in masks if (value & row_mask) and (value & col_mask))
+            cells.append(
+                {
+                    "row": row_index,
+                    "col": col_index,
+                    "count": count,
+                }
+            )
+    return {
+        "dataset": dataset,
+        "n": n,
+        "labels": labels,
+        "cells": cells,
+        "total": len(masks),
+    }
+
+
 def decode_reslat_family_item(n, index, enc):
     structure = ResiduatedLattice.decode(enc, n)
     return {
@@ -885,6 +948,11 @@ class Handler(SimpleHTTPRequestHandler):
             limit = parse_int(params, "limit", default=12)
             self.send_json(extlat_rankings(n, limit))
             return
+        if parsed.path == "/api/cooccurrence":
+            dataset = parse_dataset(params)
+            n = parse_int(params, "n", default=1)
+            self.send_json(cooccurrence_matrix(dataset, n))
+            return
         if parsed.path == "/api/appendix-tables":
             dataset = parse_dataset(params)
             n = parse_int(params, "n", default=1)
@@ -957,8 +1025,24 @@ class Handler(SimpleHTTPRequestHandler):
         return
 
 
+class AppServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    try:
+        server = AppServer(("127.0.0.1", port), Handler)
+    except OSError as exc:
+        LOGGER.error("server.bind_failed", port=port, message=str(exc))
+        raise SystemExit(1) from exc
+    LOGGER.info("server.started", host="127.0.0.1", port=port)
     print(f"Serving on http://127.0.0.1:{port}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        LOGGER.info("server.stopping", reason="keyboard_interrupt")
+    finally:
+        server.server_close()
+        LOGGER.info("server.stopped", host="127.0.0.1", port=port)

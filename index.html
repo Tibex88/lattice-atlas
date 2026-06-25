@@ -69,6 +69,10 @@
             <button id="applyFilters" type="button">Apply Filters</button>
             <button id="clearFilters" class="ghost-button" type="button">Clear</button>
           </div>
+          <div class="query-tools">
+            <div id="constraintSummary" class="meta">No active query constraints.</div>
+            <button id="copyQueryLink" class="ghost-button" type="button">Copy Query Link</button>
+          </div>
           <div class="pager">
             <button id="prevPage">Prev</button>
             <span id="pageMeta"></span>
@@ -79,7 +83,11 @@
         <div id="entriesPanel" class="panel loading-region">
           <div class="panel-title">
             <h2>Entries</h2>
-            <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Open loads it into the primary pane. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
+            <div class="appendix-toolbar">
+              <button id="exportListCsv" class="ghost-button" type="button">Export List CSV</button>
+              <button id="exportListJson" class="ghost-button" type="button">Export List JSON</button>
+              <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Open loads it into the primary pane. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
+            </div>
           </div>
           <div id="entryList" class="entry-list"></div>
         </div>
@@ -133,6 +141,16 @@
             </div>
             <div id="appendixPanel"></div>
           </article>
+          <article id="cooccurrenceShell" class="panel analysis-panel loading-region">
+            <div class="panel-title">
+              <h3>Property Co-Occurrence</h3>
+              <div class="appendix-toolbar">
+                <button id="exportCooccurrenceCsv" class="ghost-button" type="button">Export Matrix</button>
+                <button class="info-button" type="button" data-info-title="Property Co-Occurrence" data-info-body="This matrix shows how often two properties or algebra classes appear together in the selected dataset and size. Clicking a cell applies both filters at once.">i</button>
+              </div>
+            </div>
+            <div id="cooccurrencePanel"></div>
+          </article>
         </section>
         <div class="compare-header">
           <h2>Compare</h2>
@@ -157,6 +175,7 @@
                 <input id="primaryIndex" type="number" min="0" step="1">
               </label>
               <button id="loadPrimary">Load</button>
+              <button id="exportPrimaryJson" class="ghost-button" type="button">Export</button>
             </div>
             <div id="primaryView" class="viewer-body"></div>
           </article>
@@ -178,6 +197,7 @@
                 <input id="secondaryIndex" type="number" min="0" step="1">
               </label>
               <button id="loadSecondary">Load</button>
+              <button id="exportSecondaryJson" class="ghost-button" type="button">Export</button>
             </div>
             <div id="secondaryView" class="viewer-body"></div>
           </article>

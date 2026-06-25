@@ -7,6 +7,9 @@ const state = {
   total: 0,
   summaryRows: [],
   appendixData: null,
+  cooccurrenceData: null,
+  primaryEntry: null,
+  secondaryEntry: null,
   filterBounds: null,
   propertyOptions: [],
   filters: {
@@ -443,6 +446,22 @@ function downloadCsv(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
+function downloadJson(filename, payload) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function distinct(values) {
+  return [...new Set(values)];
+}
+
 function buildSummaryIndex(rows) {
   const index = new Map();
   rows.forEach((row) => index.set(`${row.dataset}:${row.n}`, row));
@@ -473,6 +492,122 @@ function currentFilterQuery() {
   }
   state.filters.properties.forEach((value) => params.append("prop", value));
   return params.toString();
+}
+
+function currentQueryParamsObject() {
+  const params = new URLSearchParams();
+  params.set("dataset", state.dataset);
+  params.set("n", String(state.level));
+  params.set("page_size", String(state.pageSize));
+  if (state.offset) params.set("offset", String(state.offset));
+  if (state.trendMode !== "counts") params.set("trend", state.trendMode);
+  const filterParams = new URLSearchParams(currentFilterQuery());
+  filterParams.forEach((value, key) => params.append(key, value));
+  const primaryIndex = byId("primaryIndex")?.value;
+  if (primaryIndex && Number(primaryIndex) !== 0) params.set("primary_index", primaryIndex);
+  const secondaryDataset = byId("secondaryDataset")?.value;
+  const secondaryLevel = byId("secondaryLevel")?.value;
+  const secondaryIndex = byId("secondaryIndex")?.value;
+  if (secondaryDataset && secondaryDataset !== "reslat") params.set("secondary_dataset", secondaryDataset);
+  if (secondaryLevel && Number(secondaryLevel) !== state.level) params.set("secondary_n", secondaryLevel);
+  if (secondaryIndex && Number(secondaryIndex) !== 0) params.set("secondary_index", secondaryIndex);
+  return params;
+}
+
+function syncUrlState() {
+  const params = currentQueryParamsObject();
+  const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+  window.history.replaceState(null, "", next);
+}
+
+function restoreStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const dataset = params.get("dataset");
+  if (dataset) state.dataset = dataset;
+  const level = params.get("n");
+  if (level) state.level = Number(level);
+  const pageSize = params.get("page_size");
+  if (pageSize) state.pageSize = Number(pageSize);
+  const offset = params.get("offset");
+  if (offset) state.offset = Number(offset);
+  const trend = params.get("trend");
+  if (trend === "ratios") state.trendMode = "ratios";
+  state.filters = {
+    widthMin: params.get("width_min") || "",
+    widthMax: params.get("width_max") || "",
+    heightMin: params.get("height_min") || "",
+    heightMax: params.get("height_max") || "",
+    countMin: params.get("count_min") || "",
+    countMax: params.get("count_max") || "",
+    properties: params.getAll("prop"),
+  };
+  return {
+    primaryIndex: params.get("primary_index") || "0",
+    secondaryDataset: params.get("secondary_dataset") || "reslat",
+    secondaryLevel: params.get("secondary_n") || String(state.level),
+    secondaryIndex: params.get("secondary_index") || "0",
+  };
+}
+
+function applyFilterInputsFromState() {
+  if (state.filterBounds) {
+    byId("filterWidthMin").value = state.filters.widthMin || state.filterBounds.width_min;
+    byId("filterWidthMax").value = state.filters.widthMax || state.filterBounds.width_max;
+    byId("filterHeightMin").value = state.filters.heightMin || state.filterBounds.height_min;
+    byId("filterHeightMax").value = state.filters.heightMax || state.filterBounds.height_max;
+  }
+  byId("filterCountMin").value = state.filters.countMin || "";
+  byId("filterCountMax").value = state.filters.countMax || "";
+  document.querySelectorAll(".property-check").forEach((input) => {
+    input.checked = state.filters.properties.includes(input.value);
+  });
+  updateDoubleSlider("Width");
+  updateDoubleSlider("Height");
+}
+
+function boundFilterValue(value, min, max) {
+  if (value === "" || value == null) {
+    return "";
+  }
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) {
+    return "";
+  }
+  return String(Math.min(Math.max(numeric, min), max));
+}
+
+function ensureFilterValuesWithinBounds() {
+  if (!state.filterBounds) {
+    return;
+  }
+  state.filters.widthMin = boundFilterValue(state.filters.widthMin, state.filterBounds.width_min, state.filterBounds.width_max);
+  state.filters.widthMax = boundFilterValue(state.filters.widthMax, state.filterBounds.width_min, state.filterBounds.width_max);
+  state.filters.heightMin = boundFilterValue(state.filters.heightMin, state.filterBounds.height_min, state.filterBounds.height_max);
+  state.filters.heightMax = boundFilterValue(state.filters.heightMax, state.filterBounds.height_min, state.filterBounds.height_max);
+  if (state.filters.widthMin && state.filters.widthMax && Number(state.filters.widthMin) > Number(state.filters.widthMax)) {
+    state.filters.widthMax = state.filters.widthMin;
+  }
+  if (state.filters.heightMin && state.filters.heightMax && Number(state.filters.heightMin) > Number(state.filters.heightMax)) {
+    state.filters.heightMax = state.filters.heightMin;
+  }
+}
+
+function renderConstraintSummary() {
+  const bits = [];
+  if (state.filterBounds) {
+    const widthChanged = (state.filters.widthMin && Number(state.filters.widthMin) !== state.filterBounds.width_min)
+      || (state.filters.widthMax && Number(state.filters.widthMax) !== state.filterBounds.width_max);
+    const heightChanged = (state.filters.heightMin && Number(state.filters.heightMin) !== state.filterBounds.height_min)
+      || (state.filters.heightMax && Number(state.filters.heightMax) !== state.filterBounds.height_max);
+    if (widthChanged) bits.push(`w ${state.filters.widthMin || "min"}-${state.filters.widthMax || "max"}`);
+    if (heightChanged) bits.push(`h ${state.filters.heightMin || "min"}-${state.filters.heightMax || "max"}`);
+  }
+  if (state.dataset === "extlat" && (state.filters.countMin || state.filters.countMax)) {
+    bits.push(`count ${state.filters.countMin || "min"}-${state.filters.countMax || "max"}`);
+  }
+  if (state.filters.properties.length) bits.push(`${state.filters.properties.length} properties`);
+  bits.push(`${state.dataset}${state.level}`);
+  byId("constraintSummary").textContent = bits.length ? bits.join(" • ") : "No active query constraints.";
 }
 
 function syncFilterStateFromInputs() {
@@ -509,6 +644,7 @@ function clearFilterInputs() {
   };
   updateDoubleSlider("Width");
   updateDoubleSlider("Height");
+  renderConstraintSummary();
 }
 
 function renderPropertyFilters(payload) {
@@ -598,7 +734,9 @@ async function loadFilterBounds() {
     heightMin.max = state.filterBounds.height_max;
     heightMax.min = state.filterBounds.height_min;
     heightMax.max = state.filterBounds.height_max;
-    clearFilterInputs();
+    ensureFilterValuesWithinBounds();
+    applyFilterInputsFromState();
+    renderConstraintSummary();
   });
 }
 
@@ -902,6 +1040,119 @@ function exportAppendixDimensions() {
   downloadCsv(`appendix-dimensions-${state.dataset}${state.level}.csv`, rows);
 }
 
+function renderCooccurrence(payload) {
+  state.cooccurrenceData = payload;
+  if (!payload.labels.length) {
+    byId("cooccurrencePanel").innerHTML = `<div class="empty">No property matrix for this dataset.</div>`;
+    return;
+  }
+  const size = payload.labels.length;
+  const matrix = Array.from({ length: size }, () => Array(size).fill(0));
+  payload.cells.forEach((cell) => {
+    matrix[cell.row][cell.col] = cell.count;
+    matrix[cell.col][cell.row] = cell.count;
+  });
+  const max = Math.max(...payload.cells.map((cell) => cell.count), 1);
+  const header = payload.labels.map((label, index) => `
+    <th title="${escapeHtml(label.label)}">${index + 1}</th>
+  `).join("");
+  const rows = payload.labels.map((label, rowIndex) => `
+    <tr>
+      <th title="${escapeHtml(label.label)}">${indexLabel(rowIndex, label.label)}</th>
+      ${payload.labels.map((other, colIndex) => {
+        const count = matrix[rowIndex][colIndex];
+        const alpha = count ? 0.14 + 0.76 * (count / max) : 0.05;
+        return `<td>
+          <button
+            class="cooccurrence-cell"
+            type="button"
+            data-row="${rowIndex}"
+            data-col="${colIndex}"
+            style="background: rgba(15,118,110,${alpha})"
+            title="${escapeHtml(label.label)} × ${escapeHtml(other.label)}"
+          >${count ? numberFmt(count) : ""}</button>
+        </td>`;
+      }).join("")}
+    </tr>
+  `).join("");
+  const legend = payload.labels.map((label, index) => `
+    <div class="legend-row"><strong>${index + 1}</strong><span>${escapeHtml(label.label)}</span><span class="meta">${escapeHtml(label.kind)}</span></div>
+  `).join("");
+  byId("cooccurrencePanel").innerHTML = `
+    <div class="appendix-shell">
+      <div class="appendix-table-wrap">
+        <table class="appendix-table sticky-table cooccurrence-table">
+          <thead>
+            <tr><th>#</th>${header}</tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="cooccurrence-legend">${legend}</div>
+    </div>
+  `;
+  byId("cooccurrencePanel").querySelectorAll(".cooccurrence-cell").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const row = payload.labels[Number(button.dataset.row)];
+      const col = payload.labels[Number(button.dataset.col)];
+      const keys = distinct([row.key, col.key]);
+      document.querySelectorAll(".property-check").forEach((input) => {
+        input.checked = keys.includes(input.value);
+      });
+      syncFilterStateFromInputs();
+      renderConstraintSummary();
+      state.offset = 0;
+      syncUrlState();
+      await loadEntries();
+    });
+  });
+}
+
+function indexLabel(index, label) {
+  return `<span class="cooccurrence-index">${index + 1}</span>`;
+}
+
+function exportCooccurrenceCsv() {
+  if (!state.cooccurrenceData?.labels.length) {
+    return;
+  }
+  const labels = state.cooccurrenceData.labels;
+  const size = labels.length;
+  const matrix = Array.from({ length: size }, () => Array(size).fill(0));
+  state.cooccurrenceData.cells.forEach((cell) => {
+    matrix[cell.row][cell.col] = cell.count;
+    matrix[cell.col][cell.row] = cell.count;
+  });
+  const rows = [["property", ...labels.map((label) => label.label)]];
+  labels.forEach((label, rowIndex) => {
+    rows.push([label.label, ...matrix[rowIndex]]);
+  });
+  downloadCsv(`cooccurrence-${state.dataset}${state.level}.csv`, rows);
+}
+
+async function exportCurrentList(format) {
+  return loading.run("entries", `Exporting list ${format.toUpperCase()}...`, async () => {
+    const query = currentFilterQuery();
+    const payload = await fetchJson(`/api/items?dataset=${state.dataset}&n=${state.level}&limit=${state.pageSize}&offset=${state.offset}${query ? `&${query}` : ""}`);
+    const filename = `entries-${state.dataset}${state.level}.${format}`;
+    if (format === "csv") {
+      const rows = [["index", "encoding", "count", "width", "height"]];
+      payload.items.forEach((item) => rows.push([item.index, item.encoding, item.count ?? "", item.width, item.height]));
+      downloadCsv(filename, rows);
+    } else {
+      downloadJson(filename, payload);
+    }
+  });
+}
+
+function exportViewerEntry(target) {
+  const entry = target === "primary" ? state.primaryEntry : state.secondaryEntry;
+  if (!entry) {
+    return;
+  }
+  downloadJson(`${target}-${entry.dataset}${entry.n}-${entry.index}.json`, entry);
+}
+
 function renderEntryList(payload) {
   state.total = payload.total;
   const list = byId("entryList");
@@ -998,6 +1249,68 @@ function renderMatrix(title, matrix) {
   return `<div><h4>${title}</h4><table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function renderNegationTable(negation) {
+  const cells = negation.map((value, index) => `<tr><th>${index}</th><td>${value}</td></tr>`).join("");
+  return `
+    <div>
+      <h4>Negation</h4>
+      <table>
+        <thead><tr><th>a</th><th>¬a</th></tr></thead>
+        <tbody>${cells}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderPropertyChecker(entry) {
+  if (!entry.property_items?.length) {
+    return "";
+  }
+  const groups = distinct(entry.property_items.map((item) => item.kind)).map((kind) => ({
+    kind,
+    rows: entry.property_items.filter((item) => item.kind === kind),
+  }));
+  return `
+    <section class="checker-shell">
+      <div class="inline-info-title">
+        <h4>Property Checker</h4>
+        <button class="info-button" type="button" data-info-title="Property Checker" data-info-body="These truth values are computed directly from the current decoded structure using the same property definitions that drive filters and aggregate tables.">i</button>
+      </div>
+      ${groups.map((group) => `
+        <div class="checker-group">
+          <div class="checker-group-title">${group.kind}</div>
+          <div class="checker-grid">
+            ${group.rows.map((item) => `
+              <div class="checker-item ${item.value ? "is-true" : "is-false"}">
+                <div class="checker-item-head">
+                  <span>${escapeHtml(item.label)}</span>
+                  <span class="checker-value">${item.value ? "true" : "false"}</span>
+                </div>
+                <div class="meta">${escapeHtml(item.description)}</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("")}
+    </section>
+  `;
+}
+
+function renderDerivedOperations(entry) {
+  if (!entry.arrow_table) {
+    return "";
+  }
+  return `
+    <details class="derived-shell">
+      <summary>Derived Operations</summary>
+      <div class="matrix-grid derived-grid">
+        ${renderMatrix("Residuum Table", entry.arrow_table)}
+        ${renderNegationTable(entry.negation)}
+      </div>
+    </details>
+  `;
+}
+
 function renderDiffMatrix(title, matrix, reference) {
   const headers = matrix[0].map((_, i) => `<th>${i}</th>`).join("");
   const rows = matrix.map((row, i) => `<tr><th>${i}</th>${row.map((value, j) => {
@@ -1022,6 +1335,8 @@ function renderViewer(target, entry) {
       ${renderMatrix("Order Matrix", entry.order_matrix)}
       ${entry.mult_table ? renderMatrix("Multiplication Table", entry.mult_table) : ""}
     </div>
+    ${renderDerivedOperations(entry)}
+    ${renderPropertyChecker(entry)}
     <div>
       <div class="inline-info-title">
         <h4>Encoding</h4>
@@ -1083,7 +1398,7 @@ function renderFamilyPanel(payload, selectedEntry) {
       state.level = Number(payload.n);
       byId("primaryIndex").value = button.dataset.index;
       await fetchPropertyFilters();
-      await syncPrimaryContext();
+      await syncPrimaryContext({ resetIndex: false });
     });
   });
   panel.querySelectorAll(".family-secondary").forEach((button) => {
@@ -1170,6 +1485,10 @@ async function loadAnalysis() {
       const appendix = await fetchJson(`/api/appendix-tables?dataset=${state.dataset}&n=${state.level}`);
       renderAppendixTables(appendix);
     }),
+    loading.run("analysis", "Loading co-occurrence...", async () => {
+      const cooccurrence = await fetchJson(`/api/cooccurrence?dataset=${state.dataset}&n=${state.level}`);
+      renderCooccurrence(cooccurrence);
+    }),
   ]);
 }
 
@@ -1203,8 +1522,14 @@ async function loadViewer(target) {
       const entry = await fetchJson(`/api/entry?dataset=${dataset}&n=${level}&index=${index}`);
       renderViewer(target, entry);
       if (target === "primary") {
+        state.primaryEntry = entry;
+      } else {
+        state.secondaryEntry = entry;
+      }
+      if (target === "primary") {
         await loadFamilyComparison(entry);
       }
+      syncUrlState();
     } catch (error) {
       const appError = errors.handle(error, {
         source: `viewer.${target}`,
@@ -1220,9 +1545,11 @@ async function loadViewer(target) {
   });
 }
 
-async function syncPrimaryContext() {
+async function syncPrimaryContext({ resetIndex = true } = {}) {
   state.offset = 0;
-  byId("primaryIndex").value = 0;
+  if (resetIndex) {
+    byId("primaryIndex").value = 0;
+  }
   await Promise.all([loadFilterBounds(), loadAnalysis()]);
   await loadEntries();
   await loadViewer("primary");
@@ -1239,33 +1566,58 @@ async function syncSecondaryContext() {
 
 async function boot() {
   errors.installGlobalHandlers();
+  const restored = restoreStateFromUrl();
   const levels = Array.from({ length: 12 }, (_, i) => i + 1);
   const datasets = ["lat", "extlat", "reslat"];
   byId("dataset").innerHTML = optionMarkup(datasets, state.dataset);
-  byId("secondaryDataset").innerHTML = optionMarkup(datasets, "reslat");
+  byId("secondaryDataset").innerHTML = optionMarkup(datasets, restored.secondaryDataset);
   byId("level").innerHTML = optionMarkup(levels, state.level);
-  byId("secondaryLevel").innerHTML = optionMarkup(levels, state.level);
+  byId("secondaryLevel").innerHTML = optionMarkup(levels, restored.secondaryLevel);
   await loadSummary();
   await fetchPropertyFilters();
   await loadFilterBounds();
   await Promise.all([loadEntries(), loadAnalysis()]);
-  byId("primaryIndex").value = 0;
-  byId("secondaryIndex").value = 0;
+  byId("primaryIndex").value = restored.primaryIndex;
+  byId("secondaryIndex").value = restored.secondaryIndex;
   await loadViewer("primary");
   await loadViewer("secondary");
   wireDoubleSlider("Width");
   wireDoubleSlider("Height");
   wireInfoButtons();
   wireSummaryDialog();
+  byId("copyQueryLink").addEventListener("click", async () => {
+    syncUrlState();
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+    } catch (error) {
+      const helper = document.createElement("textarea");
+      helper.value = window.location.href;
+      helper.setAttribute("readonly", "true");
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.append(helper);
+      helper.select();
+      document.execCommand("copy");
+      helper.remove();
+      logger.warn("ui.copy_query_link_fallback", { message: error.message });
+    }
+  });
+  byId("exportListCsv").addEventListener("click", () => exportCurrentList("csv"));
+  byId("exportListJson").addEventListener("click", () => exportCurrentList("json"));
+  byId("exportPrimaryJson").addEventListener("click", () => exportViewerEntry("primary"));
+  byId("exportSecondaryJson").addEventListener("click", () => exportViewerEntry("secondary"));
   byId("exportAppendixProperties").addEventListener("click", exportAppendixProperties);
   byId("exportAppendixDimensions").addEventListener("click", exportAppendixDimensions);
+  byId("exportCooccurrenceCsv").addEventListener("click", exportCooccurrenceCsv);
   byId("trendCounts").addEventListener("click", () => {
     state.trendMode = "counts";
     renderTrendChart();
+    syncUrlState();
   });
   byId("trendRatios").addEventListener("click", () => {
     state.trendMode = "ratios";
     renderTrendChart();
+    syncUrlState();
   });
 
   byId("dataset").addEventListener("change", protect("controls.primary_dataset", async (e) => {
@@ -1273,41 +1625,59 @@ async function boot() {
     clearFilterInputs();
     await fetchPropertyFilters();
     await syncPrimaryContext();
+    syncUrlState();
   }, { kind: "ui" }));
   byId("level").addEventListener("change", protect("controls.primary_level", async (e) => {
     state.level = Number(e.target.value);
     await syncPrimaryContext();
+    syncUrlState();
   }, { kind: "ui" }));
   byId("pageSize").addEventListener("change", protect("controls.page_size", async (e) => {
     state.pageSize = Number(e.target.value);
     state.offset = 0;
     await loadEntries();
+    syncUrlState();
   }, { kind: "ui" }));
   byId("applyFilters").addEventListener("click", protect("controls.apply_filters", async () => {
     syncFilterStateFromInputs();
+    renderConstraintSummary();
     state.offset = 0;
     await loadEntries();
+    syncUrlState();
   }, { kind: "ui" }));
   byId("clearFilters").addEventListener("click", protect("controls.clear_filters", async () => {
     clearFilterInputs();
     state.offset = 0;
     await loadEntries();
+    syncUrlState();
   }, { kind: "ui" }));
   byId("prevPage").addEventListener("click", protect("controls.prev_page", async () => {
     state.offset = Math.max(0, state.offset - state.pageSize);
     await loadEntries();
+    syncUrlState();
   }, { kind: "ui" }));
   byId("nextPage").addEventListener("click", protect("controls.next_page", async () => {
     if (state.offset + state.pageSize < state.total) {
       state.offset += state.pageSize;
       await loadEntries();
+      syncUrlState();
     }
   }, { kind: "ui" }));
   byId("loadPrimary").addEventListener("click", protect("viewer.load_primary", () => loadViewer("primary"), { kind: "ui" }));
   byId("loadSecondary").addEventListener("click", protect("viewer.load_secondary", () => loadViewer("secondary"), { kind: "ui" }));
-  byId("secondaryDataset").addEventListener("change", protect("controls.secondary_dataset", syncSecondaryContext, { kind: "ui" }));
-  byId("secondaryLevel").addEventListener("change", protect("controls.secondary_level", syncSecondaryContext, { kind: "ui" }));
-  byId("secondaryIndex").addEventListener("change", protect("controls.secondary_index", syncSecondaryViewer, { kind: "ui" }));
+  byId("secondaryDataset").addEventListener("change", protect("controls.secondary_dataset", async () => {
+    await syncSecondaryContext();
+    syncUrlState();
+  }, { kind: "ui" }));
+  byId("secondaryLevel").addEventListener("change", protect("controls.secondary_level", async () => {
+    await syncSecondaryContext();
+    syncUrlState();
+  }, { kind: "ui" }));
+  byId("secondaryIndex").addEventListener("change", protect("controls.secondary_index", async () => {
+    await syncSecondaryViewer();
+    syncUrlState();
+  }, { kind: "ui" }));
+  syncUrlState();
 }
 
 protect("boot", boot, { kind: "ui" })();
