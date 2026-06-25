@@ -436,6 +436,12 @@ button:hover {
   margin-bottom: 10px;
 }
 
+.query-tools {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 #pageMeta {
   text-align: center;
   font-size: 13px;
@@ -544,6 +550,38 @@ button:hover {
   text-align: left;
 }
 
+.cooccurrence-table td {
+  padding: 0;
+}
+
+.cooccurrence-cell {
+  width: 100%;
+  margin: 0;
+  padding: 7px 4px;
+  border-radius: 0;
+  border: none;
+  color: var(--ink);
+  background: transparent;
+  font-size: 11px;
+}
+
+.cooccurrence-index {
+  font-size: 11px;
+}
+
+.cooccurrence-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.legend-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+}
+
 .sticky-table thead th {
   position: sticky;
   top: 0;
@@ -602,7 +640,7 @@ button:hover {
 
 .viewer-controls-primary,
 .viewer-controls-secondary {
-  grid-template-columns: 1fr 120px 100px 100px;
+  grid-template-columns: 1fr 120px 100px 100px 100px;
 }
 
 .viewer-title h3,
@@ -640,6 +678,75 @@ button:hover {
 .matrix-grid {
   display: grid;
   gap: 12px;
+}
+
+.derived-shell {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbf7ef;
+  padding: 10px 12px;
+}
+
+.derived-shell summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.derived-grid {
+  margin-top: 12px;
+}
+
+.checker-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.checker-group {
+  display: grid;
+  gap: 8px;
+}
+
+.checker-group-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.checker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.checker-item {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffdfa;
+}
+
+.checker-item.is-true {
+  border-color: rgba(15, 118, 110, 0.3);
+  background: rgba(15, 118, 110, 0.06);
+}
+
+.checker-item.is-false {
+  border-color: rgba(194, 65, 12, 0.24);
+  background: rgba(194, 65, 12, 0.05);
+}
+
+.checker-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.checker-value {
+  font-size: 12px;
+  text-transform: uppercase;
 }
 
 .family-summary {
@@ -773,6 +880,11 @@ code {
   }
 
   .family-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checker-grid,
+  .cooccurrence-legend {
     grid-template-columns: 1fr;
   }
 }
