@@ -4,5 +4,4 @@ __pycache__/
 src/*
 
 # Keep the data folder in the outer repo.
-!src/data/
-!src/data/**
+!src/data.tar.gz
