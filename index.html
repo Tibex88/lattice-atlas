@@ -16,7 +16,7 @@
         <div class="panel">
           <div class="panel-title">
             <h2>Controls</h2>
-            <button class="info-button" type="button" data-info-title="Controls" data-info-body="Choose how many entries to list per page and move through the current result set. Dataset family and size n for the left view are configured in the Primary pane.">i</button>
+            <button class="info-button" type="button" data-info-title="Controls" data-info-body="Choose how many entries to list per page, filter them by dimensions and algebraic properties, and move through the current result set. All filters are computed against the actual database contents.">i</button>
           </div>
           <label>Show
             <select id="pageSize">
@@ -26,6 +26,49 @@
               <option>200</option>
             </select>
           </label>
+          <div class="slider-group">
+            <div class="slider-head">
+              <span>Width</span>
+              <span id="widthRangeLabel" class="slider-value"></span>
+            </div>
+            <div class="double-slider" id="widthSlider">
+              <div class="slider-track"></div>
+              <div id="widthSliderActive" class="slider-range"></div>
+              <input id="filterWidthMin" type="range" min="1" max="12" step="1" value="1">
+              <input id="filterWidthMax" type="range" min="1" max="12" step="1" value="12">
+            </div>
+          </div>
+          <div class="slider-group">
+            <div class="slider-head">
+              <span>Height</span>
+              <span id="heightRangeLabel" class="slider-value"></span>
+            </div>
+            <div class="double-slider" id="heightSlider">
+              <div class="slider-track"></div>
+              <div id="heightSliderActive" class="slider-range"></div>
+              <input id="filterHeightMin" type="range" min="1" max="12" step="1" value="1">
+              <input id="filterHeightMax" type="range" min="1" max="12" step="1" value="12">
+            </div>
+          </div>
+          <div id="countFilterRow" class="filter-grid">
+            <label>Count min
+              <input id="filterCountMin" type="number" min="0" step="1">
+            </label>
+            <label>Count max
+              <input id="filterCountMax" type="number" min="0" step="1">
+            </label>
+          </div>
+          <div class="property-filter">
+            <div class="panel-title">
+              <h3>Properties</h3>
+              <button class="info-button" type="button" data-info-title="Property Filters" data-info-body="These checkboxes come from the lattice and residuated-lattice property definitions in the codebase. Matching is computed directly from the selected dataset, not from hardcoded tables.">i</button>
+            </div>
+            <div id="propertyFilters" class="property-list"></div>
+          </div>
+          <div class="filter-actions">
+            <button id="applyFilters" type="button">Apply Filters</button>
+            <button id="clearFilters" class="ghost-button" type="button">Clear</button>
+          </div>
           <div class="pager">
             <button id="prevPage">Prev</button>
             <span id="pageMeta"></span>
@@ -43,6 +86,39 @@
       </section>
 
       <section class="workspace">
+        <section class="analysis-shell">
+          <div class="analysis-head">
+            <div>
+              <h2>Analysis</h2>
+              <p class="compare-note">Counts, ratios, distributions, and expansion rankings for the currently selected primary dataset and size.</p>
+            </div>
+            <button class="info-button" type="button" data-info-title="Analysis" data-info-body="This area summarizes the currently selected size n. It combines overall counts, ratios, precomputed width/height distributions, and top extlat expansion counts so the browser is not just entry-by-entry inspection.">i</button>
+          </div>
+          <div id="metricCards" class="metric-cards"></div>
+          <div class="analysis-grid">
+            <article class="panel analysis-panel">
+              <div class="panel-title">
+                <h3>Count Trends</h3>
+                <button class="info-button" type="button" data-info-title="Count Trends" data-info-body="These lines show how the number of lattices, reducts, and residuated lattices grows from size 1 to 12. The highlighted marker follows the size currently selected in the primary pane.">i</button>
+              </div>
+              <div id="trendChart"></div>
+            </article>
+            <article class="panel analysis-panel">
+              <div class="panel-title">
+                <h3>Width × Height</h3>
+                <button class="info-button" type="button" data-info-title="Width × Height" data-info-body="This heatmap uses the precomputed contexts for lattices or residuated lattices. Each cell counts structures with the given width and height at the current size n.">i</button>
+              </div>
+              <div id="widthHeightPanel"></div>
+            </article>
+          </div>
+          <article class="panel analysis-panel">
+            <div class="panel-title">
+              <h3>Top extlat Expansion Counts</h3>
+              <button class="info-button" type="button" data-info-title="extlat Rankings" data-info-body="Each extlat item is a base lattice paired with the number of residuated-lattice expansions it admits. This ranking surfaces the most expandable lattices at the current size n.">i</button>
+            </div>
+            <div id="rankingPanel"></div>
+          </article>
+        </section>
         <div class="compare-header">
           <h2>Compare</h2>
           <div class="compare-note">Select an entry for the left pane, then optionally load another into the right pane.</div>
