@@ -1,0 +1,86 @@
+file: extlat5.db
+object_type: dict
+entries: 5
+file_bytes: 51
+sample_limit: 5
+max_value: 22
+
+sample: 1
+value: 1
+encoding_hex: ffde
+order_matrix:
+1 1 1 1 1
+0 1 1 1 1
+0 0 1 0 1
+0 0 0 1 1
+0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+2 -> 4
+3 -> 4
+
+sample: 2
+value: 0
+encoding_hex: fdde
+order_matrix:
+1 1 1 1 1
+0 1 0 1 1
+0 0 1 0 1
+0 0 0 1 1
+0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 4
+3 -> 4
+
+sample: 3
+value: 0
+encoding_hex: fcde
+order_matrix:
+1 1 1 1 1
+0 1 0 0 1
+0 0 1 0 1
+0 0 0 1 1
+0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+2 -> 4
+3 -> 4
+
+sample: 4
+value: 3
+encoding_hex: fdfe
+order_matrix:
+1 1 1 1 1
+0 1 0 1 1
+0 0 1 1 1
+0 0 0 1 1
+0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 3
+3 -> 4
+
+sample: 5
+value: 22
+encoding_hex: fffe
+order_matrix:
+1 1 1 1 1
+0 1 1 1 1
+0 0 1 1 1
+0 0 0 1 1
+0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+3 -> 4

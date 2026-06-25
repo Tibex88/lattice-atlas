@@ -1,0 +1,13 @@
+file: extlat1.db
+object_type: dict
+entries: 1
+file_bytes: 21
+sample_limit: 1
+max_value: 1
+
+sample: 1
+value: 1
+encoding_hex: 80
+order_matrix:
+1
+hasse_edges:
