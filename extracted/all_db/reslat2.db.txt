@@ -1,0 +1,16 @@
+file: reslat2.db
+object_type: set
+entries: 1
+file_bytes: 22
+sample_limit: 1
+
+sample: 1
+encoding_hex: e00010
+order_matrix:
+1 1
+0 1
+multiplication_table:
+0 0
+0 1
+hasse_edges:
+0 -> 1

@@ -1,0 +1,538 @@
+file: extlat7.db
+object_type: dict
+entries: 53
+file_bytes: 494
+sample_limit: 25
+max_value: 451
+
+sample: 1
+value: 0
+encoding_hex: ff1ce6f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 0 1 1
+0 0 1 0 0 1 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+0 -> 4
+1 -> 5
+2 -> 5
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 2
+value: 0
+encoding_hex: ffed66f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 0 1
+0 0 1 0 1 0 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 5
+1 -> 2
+1 -> 3
+2 -> 4
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 3
+value: 5
+encoding_hex: ff3dfff0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 1 1 1
+0 0 1 0 1 1 1
+0 0 0 1 1 1 1
+0 0 0 0 1 1 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+2 -> 4
+3 -> 4
+4 -> 5
+5 -> 6
+
+sample: 4
+value: 0
+encoding_hex: ff4ce6f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 0 0 1
+0 0 1 0 0 1 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+1 -> 3
+2 -> 5
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 5
+value: 0
+encoding_hex: ff4c66f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 0 0 1
+0 0 1 0 0 0 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+0 -> 5
+1 -> 3
+2 -> 6
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 6
+value: 1
+encoding_hex: ff5ceff0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 0 1 1
+0 0 1 0 0 1 1
+0 0 0 1 0 1 1
+0 0 0 0 1 1 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+1 -> 3
+2 -> 5
+3 -> 5
+4 -> 5
+5 -> 6
+
+sample: 7
+value: 53
+encoding_hex: ff7ffff0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 1 1 1
+0 0 1 1 1 1 1
+0 0 0 1 1 1 1
+0 0 0 0 1 1 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 3
+3 -> 4
+4 -> 5
+5 -> 6
+
+sample: 8
+value: 0
+encoding_hex: ff7d7ef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 1 1 1
+0 0 1 0 1 0 1
+0 0 0 1 1 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 4
+3 -> 4
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 9
+value: 0
+encoding_hex: ff2d76f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 1 0 1
+0 0 1 0 1 0 1
+0 0 0 1 1 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+0 -> 5
+1 -> 4
+2 -> 4
+3 -> 4
+4 -> 6
+5 -> 6
+
+sample: 10
+value: 0
+encoding_hex: ff5ceef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 0 1 1
+0 0 1 0 0 1 1
+0 0 0 1 0 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+1 -> 3
+2 -> 5
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 11
+value: 0
+encoding_hex: ff3d6ef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 1 1 1
+0 0 1 0 1 0 1
+0 0 0 1 0 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+1 -> 5
+2 -> 4
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 12
+value: 0
+encoding_hex: ff5ce6f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 0 1 1
+0 0 1 0 0 1 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+1 -> 3
+1 -> 5
+2 -> 5
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 13
+value: 0
+encoding_hex: ff4ce7f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 0 0 1
+0 0 1 0 0 1 1
+0 0 0 1 0 0 1
+0 0 0 0 1 1 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+1 -> 3
+2 -> 5
+3 -> 6
+4 -> 5
+5 -> 6
+
+sample: 14
+value: 0
+encoding_hex: ff0c66f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 0 0 1
+0 0 1 0 0 0 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+0 -> 4
+0 -> 5
+1 -> 6
+2 -> 6
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 15
+value: 11
+encoding_hex: fffffef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 1 1
+0 0 1 1 1 1 1
+0 0 0 1 1 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+3 -> 4
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 16
+value: 0
+encoding_hex: ff7f76f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 1 1 1
+0 0 1 1 1 0 1
+0 0 0 1 1 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+1 -> 5
+2 -> 3
+3 -> 4
+4 -> 6
+5 -> 6
+
+sample: 17
+value: 0
+encoding_hex: fffceef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 1 1
+0 0 1 0 0 1 1
+0 0 0 1 0 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+1 -> 4
+2 -> 5
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 18
+value: 0
+encoding_hex: ff7cf6f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 1 1 1
+0 0 1 0 0 1 1
+0 0 0 1 1 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+1 -> 5
+2 -> 5
+3 -> 4
+4 -> 6
+5 -> 6
+
+sample: 19
+value: 0
+encoding_hex: ffec66f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 0 1
+0 0 1 0 0 0 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 5
+1 -> 2
+1 -> 3
+1 -> 4
+2 -> 6
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 20
+value: 0
+encoding_hex: ff3d76f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 1 1 1
+0 0 1 0 1 0 1
+0 0 0 1 1 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+1 -> 5
+2 -> 4
+3 -> 4
+4 -> 6
+5 -> 6
+
+sample: 21
+value: 2
+encoding_hex: fffdeef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 1 1
+0 0 1 0 1 1 1
+0 0 0 1 0 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+2 -> 4
+2 -> 5
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 22
+value: 9
+encoding_hex: fffceff0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 1 1
+0 0 1 0 0 1 1
+0 0 0 1 0 1 1
+0 0 0 0 1 1 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+1 -> 4
+2 -> 5
+3 -> 5
+4 -> 5
+5 -> 6
+
+sample: 23
+value: 0
+encoding_hex: ffef66f0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 1 1 1 0 1
+0 0 1 1 1 0 1
+0 0 0 1 0 0 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 5
+1 -> 2
+2 -> 3
+2 -> 4
+3 -> 6
+4 -> 6
+5 -> 6
+
+sample: 24
+value: 1
+encoding_hex: ff7ffef0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 1 1 1 1
+0 0 1 1 1 1 1
+0 0 0 1 1 1 1
+0 0 0 0 1 0 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 3
+3 -> 4
+3 -> 5
+4 -> 6
+5 -> 6
+
+sample: 25
+value: 2
+encoding_hex: ff3deff0
+order_matrix:
+1 1 1 1 1 1 1
+0 1 0 0 1 1 1
+0 0 1 0 1 1 1
+0 0 0 1 0 1 1
+0 0 0 0 1 1 1
+0 0 0 0 0 1 1
+0 0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+2 -> 4
+3 -> 5
+4 -> 5
+5 -> 6

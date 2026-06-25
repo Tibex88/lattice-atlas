@@ -1,0 +1,33 @@
+file: reslat3.db
+object_type: set
+entries: 2
+file_bytes: 30
+sample_limit: 2
+
+sample: 1
+encoding_hex: fc000112
+order_matrix:
+1 1 1
+0 1 1
+0 0 1
+multiplication_table:
+0 0 0
+0 1 1
+0 1 2
+hasse_edges:
+0 -> 1
+1 -> 2
+
+sample: 2
+encoding_hex: fc000012
+order_matrix:
+1 1 1
+0 1 1
+0 0 1
+multiplication_table:
+0 0 0
+0 0 1
+0 1 2
+hasse_edges:
+0 -> 1
+1 -> 2

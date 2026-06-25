@@ -1,0 +1,283 @@
+file: extlat6.db
+object_type: dict
+entries: 15
+file_bytes: 136
+sample_limit: 15
+max_value: 94
+
+sample: 1
+value: 3
+encoding_hex: ffff78
+order_matrix:
+1 1 1 1 1 1
+0 1 1 1 1 1
+0 0 1 1 1 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+2 -> 4
+3 -> 5
+4 -> 5
+
+sample: 2
+value: 1
+encoding_hex: fe77f8
+order_matrix:
+1 1 1 1 1 1
+0 1 0 0 1 1
+0 0 1 0 1 1
+0 0 0 1 1 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+2 -> 4
+3 -> 4
+4 -> 5
+
+sample: 3
+value: 0
+encoding_hex: fff778
+order_matrix:
+1 1 1 1 1 1
+0 1 1 1 1 1
+0 0 1 0 1 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+2 -> 4
+3 -> 5
+4 -> 5
+
+sample: 4
+value: 0
+encoding_hex: feb378
+order_matrix:
+1 1 1 1 1 1
+0 1 0 1 0 1
+0 0 1 0 0 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 4
+1 -> 3
+2 -> 5
+3 -> 5
+4 -> 5
+
+sample: 5
+value: 12
+encoding_hex: fefff8
+order_matrix:
+1 1 1 1 1 1
+0 1 0 1 1 1
+0 0 1 1 1 1
+0 0 0 1 1 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 3
+3 -> 4
+4 -> 5
+
+sample: 6
+value: 0
+encoding_hex: fff378
+order_matrix:
+1 1 1 1 1 1
+0 1 1 1 1 1
+0 0 1 0 0 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+1 -> 4
+2 -> 5
+3 -> 5
+4 -> 5
+
+sample: 7
+value: 94
+encoding_hex: fffff8
+order_matrix:
+1 1 1 1 1 1
+0 1 1 1 1 1
+0 0 1 1 1 1
+0 0 0 1 1 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+3 -> 4
+4 -> 5
+
+sample: 8
+value: 0
+encoding_hex: ffb378
+order_matrix:
+1 1 1 1 1 1
+0 1 1 1 0 1
+0 0 1 0 0 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 4
+1 -> 2
+1 -> 3
+2 -> 5
+3 -> 5
+4 -> 5
+
+sample: 9
+value: 4
+encoding_hex: fef7f8
+order_matrix:
+1 1 1 1 1 1
+0 1 0 1 1 1
+0 0 1 0 1 1
+0 0 0 1 1 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 4
+3 -> 4
+4 -> 5
+
+sample: 10
+value: 0
+encoding_hex: feb778
+order_matrix:
+1 1 1 1 1 1
+0 1 0 1 0 1
+0 0 1 0 1 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 4
+3 -> 5
+4 -> 5
+
+sample: 11
+value: 13
+encoding_hex: fff7f8
+order_matrix:
+1 1 1 1 1 1
+0 1 1 1 1 1
+0 0 1 0 1 1
+0 0 0 1 1 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2
+1 -> 3
+2 -> 4
+3 -> 4
+4 -> 5
+
+sample: 12
+value: 0
+encoding_hex: fef3f8
+order_matrix:
+1 1 1 1 1 1
+0 1 0 1 1 1
+0 0 1 0 0 1
+0 0 0 1 1 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 5
+3 -> 4
+4 -> 5
+
+sample: 13
+value: 0
+encoding_hex: fe3378
+order_matrix:
+1 1 1 1 1 1
+0 1 0 0 0 1
+0 0 1 0 0 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+0 -> 4
+1 -> 5
+2 -> 5
+3 -> 5
+4 -> 5
+
+sample: 14
+value: 2
+encoding_hex: fef778
+order_matrix:
+1 1 1 1 1 1
+0 1 0 1 1 1
+0 0 1 0 1 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+1 -> 4
+2 -> 4
+3 -> 5
+4 -> 5
+
+sample: 15
+value: 0
+encoding_hex: fe7778
+order_matrix:
+1 1 1 1 1 1
+0 1 0 0 1 1
+0 0 1 0 1 1
+0 0 0 1 0 1
+0 0 0 0 1 1
+0 0 0 0 0 1
+hasse_edges:
+0 -> 1
+0 -> 2
+0 -> 3
+1 -> 4
+2 -> 4
+3 -> 5
+4 -> 5

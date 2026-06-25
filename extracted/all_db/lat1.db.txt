@@ -1,0 +1,11 @@
+file: lat1.db
+object_type: set
+entries: 1
+file_bytes: 20
+sample_limit: 1
+
+sample: 1
+encoding_hex: 80
+order_matrix:
+1
+hasse_edges:

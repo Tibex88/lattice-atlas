@@ -1,0 +1,15 @@
+file: lat3.db
+object_type: set
+entries: 1
+file_bytes: 20
+sample_limit: 1
+
+sample: 1
+encoding_hex: fc
+order_matrix:
+1 1 1
+0 1 1
+0 0 1
+hasse_edges:
+0 -> 1
+1 -> 2

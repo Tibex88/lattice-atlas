@@ -1,0 +1,125 @@
+file: reslat4.db
+object_type: set
+entries: 7
+file_bytes: 86
+sample_limit: 7
+
+sample: 1
+encoding_hex: ffc00000001023
+order_matrix:
+1 1 1 1
+0 1 1 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 0 0 1
+0 0 0 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+
+sample: 2
+encoding_hex: ffc00000001223
+order_matrix:
+1 1 1 1
+0 1 1 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 0 0 1
+0 0 2 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+
+sample: 3
+encoding_hex: ffc00000011223
+order_matrix:
+1 1 1 1
+0 1 1 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 0 1 1
+0 1 2 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+
+sample: 4
+encoding_hex: fbc00000101223
+order_matrix:
+1 1 1 1
+0 1 0 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 1 0 1
+0 0 2 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+0 -> 2
+1 -> 3
+2 -> 3
+
+sample: 5
+encoding_hex: ffc00000001123
+order_matrix:
+1 1 1 1
+0 1 1 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 0 0 1
+0 0 1 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+
+sample: 6
+encoding_hex: ffc00000111123
+order_matrix:
+1 1 1 1
+0 1 1 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 1 1 1
+0 1 1 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
+
+sample: 7
+encoding_hex: ffc00000111223
+order_matrix:
+1 1 1 1
+0 1 1 1
+0 0 1 1
+0 0 0 1
+multiplication_table:
+0 0 0 0
+0 1 1 1
+0 1 2 2
+0 1 2 3
+hasse_edges:
+0 -> 1
+1 -> 2
+2 -> 3
