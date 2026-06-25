@@ -3,5 +3,8 @@ __pycache__/
 # Ignore the nested repo content by default.
 src/*
 
-# Keep the data folder in the outer repo.
+# Keep the archive reference in the outer repo.
 !src/data.tar.gz
+
+# Keep the moved nested repo metadata out of the outer repo.
+src/.git.bak/
