@@ -26,4 +26,7 @@ This is one of the clearest ways to explain what `extlat` and `reslat` mean.
 - `extlat` counts
 
 ## Status
-Partially conceptually supported by the compare UI, but not grouped by base lattice yet.
+Completed for the current milestone.
+
+## Implemented In
+- [2e55c1b](https://github.com/Tibex88/lattice-atlas/commit/2e55c1b) Finish same-lattice comparison and ratio trends

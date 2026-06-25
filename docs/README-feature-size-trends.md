@@ -27,4 +27,8 @@ The paper emphasizes how structure distributions shift with size, especially the
 - Optional linear counts
 
 ## Status
-Not implemented in the current browser UI.
+Completed for the current milestone.
+
+## Implemented In
+- [64a98df](https://github.com/Tibex88/lattice-atlas/commit/64a98df) Build filter and analysis UI
+- [2e55c1b](https://github.com/Tibex88/lattice-atlas/commit/2e55c1b) Finish same-lattice comparison and ratio trends

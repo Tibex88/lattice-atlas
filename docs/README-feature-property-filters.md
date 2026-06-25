@@ -25,4 +25,9 @@ The paper's later sections are heavily about frequency and combinations of prope
 - Optional precomputed property tables for speed
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [64a98df](https://github.com/Tibex88/lattice-atlas/commit/64a98df) Build filter and analysis UI
+- [09645fb](https://github.com/Tibex88/lattice-atlas/commit/09645fb) Add resilient api layer and item metadata caching
+- [259d538](https://github.com/Tibex88/lattice-atlas/commit/259d538) Add frontend loading states and property help

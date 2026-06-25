@@ -29,4 +29,8 @@ This is the most direct way to expose the paper's main computational result: com
 - Optional precomputed linear counts
 
 ## Status
-Partially supported by the current summary popup, but not complete yet.
+Completed for the current milestone.
+
+## Implemented In
+- [64a98df](https://github.com/Tibex88/lattice-atlas/commit/64a98df) Build filter and analysis UI
+- [2e55c1b](https://github.com/Tibex88/lattice-atlas/commit/2e55c1b) Finish same-lattice comparison and ratio trends
