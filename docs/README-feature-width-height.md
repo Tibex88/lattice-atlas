@@ -28,4 +28,7 @@ The paper treats width and height as important structural characteristics and us
 - Aggregated counts
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [64a98df](https://github.com/Tibex88/lattice-atlas/commit/64a98df) Build filter and analysis UI

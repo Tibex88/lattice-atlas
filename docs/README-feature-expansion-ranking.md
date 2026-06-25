@@ -25,4 +25,7 @@ This directly uses the distinctive `extlat` dataset and shows which lattices are
 - `extlat<n>.db` values
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [64a98df](https://github.com/Tibex88/lattice-atlas/commit/64a98df) Build filter and analysis UI
