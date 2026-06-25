@@ -15,6 +15,11 @@ The paper repeatedly highlights least examples of rare combinations.
 - Search form for property sets
 - Result card with size, graph, and tables
 
+## UI Shape
+- A compact query form asking for one or more properties
+- A result card showing the least-size match
+- Quick actions to open the result in the compare panes
+
 ## Data Needed
 - Property evaluations across all sizes
 

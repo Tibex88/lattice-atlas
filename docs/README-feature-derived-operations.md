@@ -14,6 +14,11 @@ A residuated lattice is defined by the interaction between order, multiplication
 - Additional table beside multiplication
 - Toggle to show or hide derived operations
 
+## UI Shape
+- Tabbed or stacked tables under the graph
+- Separate tabs for multiplication, residuum, and optional negation
+- A compact toggle to hide advanced operation views when not needed
+
 ## Data Needed
 - Decoded `ResiduatedLattice`
 

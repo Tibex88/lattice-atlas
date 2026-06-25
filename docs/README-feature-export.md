@@ -15,6 +15,11 @@ This makes the site useful for follow-up research and reproducibility.
 - Export buttons near tables and search results
 - Format selector
 
+## UI Shape
+- Small export controls attached to charts, result lists, and tables
+- A format dropdown for CSV vs JSON
+- Lightweight confirmation after export generation
+
 ## Data Needed
 - Serialization of visible data
 

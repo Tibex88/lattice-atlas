@@ -15,6 +15,11 @@ The paper's later sections are heavily about frequency and combinations of prope
 - Sidebar or modal filter controls
 - Result counts after filtering
 
+## UI Shape
+- A filter drawer or sidebar with grouped property checkboxes
+- Colored badges under each selected structure title
+- Live result counts updating as filters change
+
 ## Data Needed
 - Property evaluators over decoded structures
 - Optional precomputed property tables for speed

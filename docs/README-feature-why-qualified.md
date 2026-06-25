@@ -14,6 +14,11 @@ Plain true/false labels help browsing, but explanations help understanding.
 - Expandable notes below each property
 - Inline examples for failures
 
+## UI Shape
+- Expand/collapse detail rows beneath each property result
+- Short explanation text with witness examples or counterexamples
+- A clean default view that keeps explanations hidden until requested
+
 ## Data Needed
 - Property-specific explanation logic
 

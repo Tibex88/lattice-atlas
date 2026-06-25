@@ -17,6 +17,11 @@ A research-facing browser needs targeted discovery, not only pagination.
 - Result table
 - Saveable query state in URL
 
+## UI Shape
+- A structured search form with grouped criteria
+- A paginated results table or card list
+- A shareable URL that preserves the current query
+
 ## Data Needed
 - Indexed metadata for structures
 
