@@ -13,7 +13,7 @@
         <h1>Residuals Viewer</h1>
         <p class="lede">Browse decoded lattice data and compare two entries side by side.</p>
 
-        <div class="panel">
+        <div id="controlsPanel" class="panel loading-region">
           <div class="panel-title">
             <h2>Controls</h2>
             <button class="info-button" type="button" data-info-title="Controls" data-info-body="Choose how many entries to list per page, filter them by dimensions and algebraic properties, and move through the current result set. All filters are computed against the actual database contents.">i</button>
@@ -61,7 +61,7 @@
           <div class="property-filter">
             <div class="panel-title">
               <h3>Properties</h3>
-              <button class="info-button" type="button" data-info-title="Property Filters" data-info-body="These checkboxes come from the lattice and residuated-lattice property definitions in the codebase. Matching is computed directly from the selected dataset, not from hardcoded tables.">i</button>
+              <button id="propertyFiltersInfo" class="info-button" type="button" data-info-title="Property Filters" data-info-body="These checkboxes come from the lattice and residuated-lattice property definitions in the codebase. Matching is computed directly from the selected dataset, not from hardcoded tables.">i</button>
             </div>
             <div id="propertyFilters" class="property-list"></div>
           </div>
@@ -76,7 +76,7 @@
           </div>
         </div>
 
-        <div class="panel">
+        <div id="entriesPanel" class="panel loading-region">
           <div class="panel-title">
             <h2>Entries</h2>
             <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Open loads it into the primary pane. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
@@ -86,7 +86,7 @@
       </section>
 
       <section class="workspace">
-        <section class="analysis-shell">
+        <section id="analysisShell" class="analysis-shell loading-region">
           <div class="analysis-head">
             <div>
               <h2>Analysis</h2>
@@ -124,7 +124,7 @@
           <div class="compare-note">Select an entry for the left pane, then optionally load another into the right pane.</div>
         </div>
         <div class="compare-grid">
-          <article class="viewer-card">
+          <article id="primaryCard" class="viewer-card loading-region">
             <div class="viewer-top">
               <div class="viewer-title">
                 <h3>Primary</h3>
@@ -145,7 +145,7 @@
             </div>
             <div id="primaryView" class="viewer-body"></div>
           </article>
-          <article class="viewer-card">
+          <article id="secondaryCard" class="viewer-card loading-region">
             <div class="viewer-top">
               <div class="viewer-title">
                 <h3>Secondary</h3>
@@ -175,7 +175,7 @@
           <h3 id="infoDialogTitle">Info</h3>
           <button id="closeInfoDialog" class="ghost-button" type="button">Close</button>
         </div>
-        <p id="infoDialogBody"></p>
+        <div id="infoDialogBody" class="info-dialog-body"></div>
       </div>
     </dialog>
     <button id="summaryFab" class="summary-fab" type="button" aria-label="Open summary">?</button>
@@ -186,7 +186,7 @@
           <button id="closeSummaryDialog" class="ghost-button" type="button">Close</button>
         </div>
         <p class="meta">Counts by dataset family and size. For <code>extlat</code>, max expansions is the largest number of residuated-lattice expansions for a single base lattice.</p>
-        <div id="summary" class="summary-popup"></div>
+        <div id="summary" class="summary-popup loading-region"></div>
       </div>
     </dialog>
     <script src="/app.js"></script>
