@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="320" viewBox="0 0 760 320">
+<rect x="0" y="0" width="100%" height="100%" fill="white"/>
+<style>text{font-family:Arial,sans-serif;fill:#111827}.small{font-size:11px}.label{font-size:12px}.title{font-size:16px;font-weight:bold}</style>
+<text x="380.0" y="22" text-anchor="middle" class="title">Stored entries by n (log scale)</text>
+<line x1="68" y1="36" x2="68" y2="278" stroke="#374151"/>
+<line x1="68" y1="278" x2="742" y2="278" stroke="#374151"/>
+<line x1="68" y1="278.0" x2="742" y2="278.0" stroke="#e5e7eb"/>
+<text x="60" y="282.0" text-anchor="end" class="small">1e0</text>
+<line x1="68" y1="245.7" x2="742" y2="245.7" stroke="#e5e7eb"/>
+<text x="60" y="249.7" text-anchor="end" class="small">1e1</text>
+<line x1="68" y1="213.4" x2="742" y2="213.4" stroke="#e5e7eb"/>
+<text x="60" y="217.4" text-anchor="end" class="small">1e2</text>
+<line x1="68" y1="181.0" x2="742" y2="181.0" stroke="#e5e7eb"/>
+<text x="60" y="185.0" text-anchor="end" class="small">1e3</text>
+<line x1="68" y1="148.7" x2="742" y2="148.7" stroke="#e5e7eb"/>
+<text x="60" y="152.7" text-anchor="end" class="small">1e4</text>
+<line x1="68" y1="116.4" x2="742" y2="116.4" stroke="#e5e7eb"/>
+<text x="60" y="120.4" text-anchor="end" class="small">1e5</text>
+<line x1="68" y1="84.1" x2="742" y2="84.1" stroke="#e5e7eb"/>
+<text x="60" y="88.1" text-anchor="end" class="small">1e6</text>
+<line x1="68" y1="51.7" x2="742" y2="51.7" stroke="#e5e7eb"/>
+<text x="60" y="55.7" text-anchor="end" class="small">1e7</text>
+<line x1="68" y1="19.4" x2="742" y2="19.4" stroke="#e5e7eb"/>
+<text x="60" y="23.4" text-anchor="end" class="small">1e8</text>
+<line x1="68.0" y1="36" x2="68.0" y2="278" stroke="#f3f4f6"/>
+<text x="68.0" y="300" text-anchor="middle" class="small">1</text>
+<line x1="129.3" y1="36" x2="129.3" y2="278" stroke="#f3f4f6"/>
+<text x="129.3" y="300" text-anchor="middle" class="small">2</text>
+<line x1="190.5" y1="36" x2="190.5" y2="278" stroke="#f3f4f6"/>
+<text x="190.5" y="300" text-anchor="middle" class="small">3</text>
+<line x1="251.8" y1="36" x2="251.8" y2="278" stroke="#f3f4f6"/>
+<text x="251.8" y="300" text-anchor="middle" class="small">4</text>
+<line x1="313.1" y1="36" x2="313.1" y2="278" stroke="#f3f4f6"/>
+<text x="313.1" y="300" text-anchor="middle" class="small">5</text>
+<line x1="374.4" y1="36" x2="374.4" y2="278" stroke="#f3f4f6"/>
+<text x="374.4" y="300" text-anchor="middle" class="small">6</text>
+<line x1="435.6" y1="36" x2="435.6" y2="278" stroke="#f3f4f6"/>
+<text x="435.6" y="300" text-anchor="middle" class="small">7</text>
+<line x1="496.9" y1="36" x2="496.9" y2="278" stroke="#f3f4f6"/>
+<text x="496.9" y="300" text-anchor="middle" class="small">8</text>
+<line x1="558.2" y1="36" x2="558.2" y2="278" stroke="#f3f4f6"/>
+<text x="558.2" y="300" text-anchor="middle" class="small">9</text>
+<line x1="619.5" y1="36" x2="619.5" y2="278" stroke="#f3f4f6"/>
+<text x="619.5" y="300" text-anchor="middle" class="small">10</text>
+<line x1="680.7" y1="36" x2="680.7" y2="278" stroke="#f3f4f6"/>
+<text x="680.7" y="300" text-anchor="middle" class="small">11</text>
+<line x1="742.0" y1="36" x2="742.0" y2="278" stroke="#f3f4f6"/>
+<text x="742.0" y="300" text-anchor="middle" class="small">12</text>
+<polyline fill="none" stroke="#2563eb" stroke-width="2.5" points="68.0,278.0 129.3,278.0 190.5,278.0 251.8,268.3 313.1,255.4 374.4,240.0 435.6,222.3 496.9,202.2 558.2,180.0 619.5,155.9 680.7,130.1 742.0,102.8"/>
+<circle cx="68.0" cy="278.0" r="3.5" fill="#2563eb"/>
+<circle cx="129.3" cy="278.0" r="3.5" fill="#2563eb"/>
+<circle cx="190.5" cy="278.0" r="3.5" fill="#2563eb"/>
+<circle cx="251.8" cy="268.3" r="3.5" fill="#2563eb"/>
+<circle cx="313.1" cy="255.4" r="3.5" fill="#2563eb"/>
+<circle cx="374.4" cy="240.0" r="3.5" fill="#2563eb"/>
+<circle cx="435.6" cy="222.3" r="3.5" fill="#2563eb"/>
+<circle cx="496.9" cy="202.2" r="3.5" fill="#2563eb"/>
+<circle cx="558.2" cy="180.0" r="3.5" fill="#2563eb"/>
+<circle cx="619.5" cy="155.9" r="3.5" fill="#2563eb"/>
+<circle cx="680.7" cy="130.1" r="3.5" fill="#2563eb"/>
+<circle cx="742.0" cy="102.8" r="3.5" fill="#2563eb"/>
+<polyline fill="none" stroke="#ea580c" stroke-width="2.5" points="68.0,278.0 129.3,278.0 190.5,278.0 251.8,268.3 313.1,255.4 374.4,240.0 435.6,222.3 496.9,202.2 558.2,180.0 619.5,155.9 680.7,130.1 742.0,102.8"/>
+<circle cx="68.0" cy="278.0" r="3.5" fill="#ea580c"/>
+<circle cx="129.3" cy="278.0" r="3.5" fill="#ea580c"/>
+<circle cx="190.5" cy="278.0" r="3.5" fill="#ea580c"/>
+<circle cx="251.8" cy="268.3" r="3.5" fill="#ea580c"/>
+<circle cx="313.1" cy="255.4" r="3.5" fill="#ea580c"/>
+<circle cx="374.4" cy="240.0" r="3.5" fill="#ea580c"/>
+<circle cx="435.6" cy="222.3" r="3.5" fill="#ea580c"/>
+<circle cx="496.9" cy="202.2" r="3.5" fill="#ea580c"/>
+<circle cx="558.2" cy="180.0" r="3.5" fill="#ea580c"/>
+<circle cx="619.5" cy="155.9" r="3.5" fill="#ea580c"/>
+<circle cx="680.7" cy="130.1" r="3.5" fill="#ea580c"/>
+<circle cx="742.0" cy="102.8" r="3.5" fill="#ea580c"/>
+<polyline fill="none" stroke="#16a34a" stroke-width="2.5" points="68.0,278.0 129.3,278.0 190.5,268.3 251.8,250.7 313.1,232.3 374.4,209.8 435.6,185.6 496.9,159.3 558.2,131.2 619.5,101.4 680.7,69.7 742.0,36.0"/>
+<circle cx="68.0" cy="278.0" r="3.5" fill="#16a34a"/>
+<circle cx="129.3" cy="278.0" r="3.5" fill="#16a34a"/>
+<circle cx="190.5" cy="268.3" r="3.5" fill="#16a34a"/>
+<circle cx="251.8" cy="250.7" r="3.5" fill="#16a34a"/>
+<circle cx="313.1" cy="232.3" r="3.5" fill="#16a34a"/>
+<circle cx="374.4" cy="209.8" r="3.5" fill="#16a34a"/>
+<circle cx="435.6" cy="185.6" r="3.5" fill="#16a34a"/>
+<circle cx="496.9" cy="159.3" r="3.5" fill="#16a34a"/>
+<circle cx="558.2" cy="131.2" r="3.5" fill="#16a34a"/>
+<circle cx="619.5" cy="101.4" r="3.5" fill="#16a34a"/>
+<circle cx="680.7" cy="69.7" r="3.5" fill="#16a34a"/>
+<circle cx="742.0" cy="36.0" r="3.5" fill="#16a34a"/>
+<line x1="590" y1="36" x2="608" y2="36" stroke="#2563eb" stroke-width="3"/>
+<text x="614" y="40" class="small">lat</text>
+<line x1="590" y1="54" x2="608" y2="54" stroke="#ea580c" stroke-width="3"/>
+<text x="614" y="58" class="small">extlat</text>
+<line x1="590" y1="72" x2="608" y2="72" stroke="#16a34a" stroke-width="3"/>
+<text x="614" y="76" class="small">reslat</text>
+<text x="380.0" y="314" text-anchor="middle" class="label">n elements</text>
+<text x="16" y="160.0" transform="rotate(-90 16,160.0)" text-anchor="middle" class="label">entries</text>
+</svg>
