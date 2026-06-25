@@ -15,12 +15,15 @@ A residuated lattice is defined by the interaction between order, multiplication
 - Toggle to show or hide derived operations
 
 ## UI Shape
-- Tabbed or stacked tables under the graph
-- Separate tabs for multiplication, residuum, and optional negation
-- A compact toggle to hide advanced operation views when not needed
+- A collapsible derived-operations section under the main tables
+- Residuum and negation shown together when the entry is a `reslat`
+- Hidden entirely for non-residuated datasets
 
 ## Data Needed
 - Decoded `ResiduatedLattice`
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [0bc338a](https://github.com/Tibex88/lattice-atlas/commit/0bc338a) Add inspection, query, and export research tools

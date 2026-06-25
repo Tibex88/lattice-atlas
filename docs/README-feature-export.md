@@ -16,12 +16,15 @@ This makes the site useful for follow-up research and reproducibility.
 - Format selector
 
 ## UI Shape
-- Small export controls attached to charts, result lists, and tables
-- A format dropdown for CSV vs JSON
-- Lightweight confirmation after export generation
+- Small export controls attached to result lists, aggregate tables, the co-occurrence matrix, and both viewer panes
+- Dedicated CSV or JSON buttons instead of a dropdown
+- Direct browser download generation from the visible data views
 
 ## Data Needed
 - Serialization of visible data
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [0bc338a](https://github.com/Tibex88/lattice-atlas/commit/0bc338a) Add inspection, query, and export research tools
