@@ -6,6 +6,7 @@ const state = {
   offset: 0,
   total: 0,
   summaryRows: [],
+  appendixData: null,
   filterBounds: null,
   propertyOptions: [],
   filters: {
@@ -244,6 +245,7 @@ const LoadingHub = (() => {
         controls: { element: byId("controlsPanel"), disable: "button, input, select" },
         entries: { element: byId("entriesPanel"), disable: "button, input, select" },
         analysis: { element: byId("analysisShell"), disable: "button, input, select" },
+        appendix: { element: byId("appendixShell"), disable: "button, input, select" },
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
         secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
         family: { element: byId("familyShell"), disable: "button, input, select" },
@@ -418,6 +420,27 @@ function numberFmt(value, digits = 0) {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
   });
+}
+
+function csvEscape(value) {
+  const text = String(value ?? "");
+  if (/[",\n]/.test(text)) {
+    return `"${text.replaceAll('"', '""')}"`;
+  }
+  return text;
+}
+
+function downloadCsv(filename, rows) {
+  const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function buildSummaryIndex(rows) {
@@ -783,6 +806,102 @@ function renderRankingPanel(payload) {
   `;
 }
 
+function renderAppendixTables(payload) {
+  state.appendixData = payload;
+  const propertySections = payload.property_groups.map((group) => `
+    <section class="appendix-block">
+      <div class="appendix-block-head">
+        <h4>${group.title}</h4>
+        <div class="meta">${numberFmt(group.total)} total structures</div>
+      </div>
+      <table class="appendix-table">
+        <thead>
+          <tr><th>name</th><th>count</th><th>percent</th><th>meaning</th></tr>
+        </thead>
+        <tbody>
+          ${group.rows.map((row) => `
+            <tr>
+              <td>${escapeHtml(row.label)}</td>
+              <td>${numberFmt(row.count)}</td>
+              <td>${numberFmt(row.ratio * 100, 2)}%</td>
+              <td class="appendix-description">${escapeHtml(row.description)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </section>
+  `).join("");
+  const dimensions = payload.dimensions;
+  const widthHeader = dimensions.widths.map((item) => `<th>${item.value}</th>`).join("");
+  const widthTotals = dimensions.widths.map((item) => `<td>${numberFmt(item.count)}</td>`).join("");
+  const dimensionRows = dimensions.rows.map((row) => `
+    <tr>
+      <th>${row.height}</th>
+      ${row.cells.map((cell) => `<td>${cell.count ? numberFmt(cell.count) : ""}</td>`).join("")}
+      <td>${numberFmt(row.total)}</td>
+    </tr>
+  `).join("");
+  byId("appendixPanel").innerHTML = `
+    <div class="appendix-shell">
+      ${propertySections}
+      <section class="appendix-block">
+        <div class="appendix-block-head">
+          <h4>Width × Height Counts</h4>
+          <div class="meta">${numberFmt(dimensions.total)} total structures</div>
+        </div>
+        <div class="appendix-table-wrap">
+          <table class="appendix-table sticky-table">
+            <thead>
+              <tr><th>h \\ w</th>${widthHeader}<th>total</th></tr>
+            </thead>
+            <tbody>
+              ${dimensionRows}
+              <tr>
+                <th>total</th>
+                ${widthTotals}
+                <td>${numberFmt(dimensions.total)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function exportAppendixProperties() {
+  if (!state.appendixData) {
+    return;
+  }
+  const rows = [["group", "name", "count", "percent", "meaning"]];
+  state.appendixData.property_groups.forEach((group) => {
+    group.rows.forEach((row) => {
+      rows.push([
+        group.kind,
+        row.label,
+        row.count,
+        (row.ratio * 100).toFixed(4),
+        row.description,
+      ]);
+    });
+  });
+  downloadCsv(`appendix-properties-${state.dataset}${state.level}.csv`, rows);
+}
+
+function exportAppendixDimensions() {
+  if (!state.appendixData) {
+    return;
+  }
+  const dims = state.appendixData.dimensions;
+  const rows = [["height", "width", "count"]];
+  dims.rows.forEach((row) => {
+    row.cells.forEach((cell) => {
+      rows.push([row.height, cell.width, cell.count]);
+    });
+  });
+  downloadCsv(`appendix-dimensions-${state.dataset}${state.level}.csv`, rows);
+}
+
 function renderEntryList(payload) {
   state.total = payload.total;
   const list = byId("entryList");
@@ -1035,17 +1154,23 @@ function wireSummaryDialog() {
 }
 
 async function loadAnalysis() {
-  return loading.run("analysis", "Loading analysis...", async () => {
-    const [metrics, widthHeight, rankings] = await Promise.all([
-      fetchJson(`/api/level-metrics?n=${state.level}`),
-      fetchJson(`/api/width-height?dataset=${state.dataset}&n=${state.level}`),
-      fetchJson(`/api/extlat-rankings?n=${state.level}&limit=10`),
-    ]);
-    renderMetricCards(metrics);
-    renderTrendChart();
-    renderWidthHeight(widthHeight);
-    renderRankingPanel(rankings);
-  });
+  return Promise.all([
+    loading.run("analysis", "Loading analysis...", async () => {
+      const [metrics, widthHeight, rankings] = await Promise.all([
+        fetchJson(`/api/level-metrics?n=${state.level}`),
+        fetchJson(`/api/width-height?dataset=${state.dataset}&n=${state.level}`),
+        fetchJson(`/api/extlat-rankings?n=${state.level}&limit=10`),
+      ]);
+      renderMetricCards(metrics);
+      renderTrendChart();
+      renderWidthHeight(widthHeight);
+      renderRankingPanel(rankings);
+    }),
+    loading.run("appendix", "Loading appendix tables...", async () => {
+      const appendix = await fetchJson(`/api/appendix-tables?dataset=${state.dataset}&n=${state.level}`);
+      renderAppendixTables(appendix);
+    }),
+  ]);
 }
 
 async function loadEntries() {
@@ -1132,6 +1257,8 @@ async function boot() {
   wireDoubleSlider("Height");
   wireInfoButtons();
   wireSummaryDialog();
+  byId("exportAppendixProperties").addEventListener("click", exportAppendixProperties);
+  byId("exportAppendixDimensions").addEventListener("click", exportAppendixDimensions);
   byId("trendCounts").addEventListener("click", () => {
     state.trendMode = "counts";
     renderTrendChart();
