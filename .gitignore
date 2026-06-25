@@ -6,3 +6,6 @@ src/*
 # Keep the data folder in the outer repo.
 !src/data/
 !src/data/**
+
+# Keep the moved nested repo metadata out of the outer repo.
+src/.git.bak/
