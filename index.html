@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Residuals Viewer</title>
+    <link rel="icon" type="image/png" href="/image.png">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="sidebar">
+        <h1>Residuals Viewer</h1>
+        <p class="lede">Browse decoded lattice data and compare two entries side by side.</p>
+
+        <div class="panel">
+          <div class="panel-title">
+            <h2>Controls</h2>
+            <button class="info-button" type="button" data-info-title="Controls" data-info-body="Choose how many entries to list per page and move through the current result set. Dataset family and size n for the left view are configured in the Primary pane.">i</button>
+          </div>
+          <label>Show
+            <select id="pageSize">
+              <option>25</option>
+              <option selected>50</option>
+              <option>100</option>
+              <option>200</option>
+            </select>
+          </label>
+          <div class="pager">
+            <button id="prevPage">Prev</button>
+            <span id="pageMeta"></span>
+            <button id="nextPage">Next</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <h2>Entries</h2>
+            <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Open loads it into the primary pane. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
+          </div>
+          <div id="entryList" class="entry-list"></div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="compare-header">
+          <h2>Compare</h2>
+          <div class="compare-note">Select an entry for the left pane, then optionally load another into the right pane.</div>
+        </div>
+        <div class="compare-grid">
+          <article class="viewer-card">
+            <div class="viewer-top">
+              <div class="viewer-title">
+                <h3>Primary</h3>
+                <button class="info-button" type="button" data-info-title="Primary Pane" data-info-body="This pane shows the main entry you are browsing. Choose the dataset family, size n, and index here. The graph is the lattice Hasse diagram, and the tables below show the decoded order matrix and, for reslat, the multiplication table.">i</button>
+              </div>
+            </div>
+            <div class="viewer-controls viewer-controls-primary">
+              <label>Dataset
+                <select id="dataset"></select>
+              </label>
+              <label>Size n
+                <select id="level"></select>
+              </label>
+              <label>Index
+                <input id="primaryIndex" type="number" min="0" step="1">
+              </label>
+              <button id="loadPrimary">Load</button>
+            </div>
+            <div id="primaryView" class="viewer-body"></div>
+          </article>
+          <article class="viewer-card">
+            <div class="viewer-top">
+              <div class="viewer-title">
+                <h3>Secondary</h3>
+                <button class="info-button" type="button" data-info-title="Secondary Pane" data-info-body="Use this pane for side-by-side comparison. You can switch to a different dataset family, a different size n, or a different index to compare structure, counts, or multiplication tables.">i</button>
+              </div>
+            </div>
+            <div class="viewer-controls viewer-controls-secondary">
+              <label>Dataset
+                <select id="secondaryDataset"></select>
+              </label>
+              <label>Size n
+                <select id="secondaryLevel"></select>
+              </label>
+              <label>Index
+                <input id="secondaryIndex" type="number" min="0" step="1">
+              </label>
+              <button id="loadSecondary">Load</button>
+            </div>
+            <div id="secondaryView" class="viewer-body"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+    <dialog id="infoDialog" class="info-dialog">
+      <div class="info-dialog-card">
+        <div class="info-dialog-head">
+          <h3 id="infoDialogTitle">Info</h3>
+          <button id="closeInfoDialog" class="ghost-button" type="button">Close</button>
+        </div>
+        <p id="infoDialogBody"></p>
+      </div>
+    </dialog>
+    <button id="summaryFab" class="summary-fab" type="button" aria-label="Open summary">?</button>
+    <dialog id="summaryDialog" class="info-dialog">
+      <div class="info-dialog-card summary-dialog-card">
+        <div class="info-dialog-head">
+          <h3>Summary</h3>
+          <button id="closeSummaryDialog" class="ghost-button" type="button">Close</button>
+        </div>
+        <p class="meta">Counts by dataset family and size. For <code>extlat</code>, max expansions is the largest number of residuated-lattice expansions for a single base lattice.</p>
+        <div id="summary" class="summary-popup"></div>
+      </div>
+    </dialog>
+    <script src="/app.js"></script>
+  </body>
+  </html>
