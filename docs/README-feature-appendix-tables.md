@@ -25,4 +25,7 @@ This aligns the site closely with the paper's published outputs.
 - Aggregated statistics over datasets
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [9af4272](https://github.com/Tibex88/lattice-atlas/commit/9af4272) Add appendix-style statistics tables
