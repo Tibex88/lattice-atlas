@@ -99,7 +99,11 @@
             <article class="panel analysis-panel">
               <div class="panel-title">
                 <h3>Count Trends</h3>
-                <button class="info-button" type="button" data-info-title="Count Trends" data-info-body="These lines show how the number of lattices, reducts, and residuated lattices grows from size 1 to 12. The highlighted marker follows the size currently selected in the primary pane.">i</button>
+                <div class="trend-toolbar">
+                  <button id="trendCounts" class="ghost-button trend-toggle is-active" type="button">Counts</button>
+                  <button id="trendRatios" class="ghost-button trend-toggle" type="button">Ratios</button>
+                  <button class="info-button" type="button" data-info-title="Count Trends" data-info-body="Counts mode shows raw growth across sizes. Ratios mode shows reduct-supporting lattices over all lattices, residuated lattices over all lattices, and expansions per reduct.">i</button>
+                </div>
               </div>
               <div id="trendChart"></div>
             </article>
@@ -167,6 +171,13 @@
             <div id="secondaryView" class="viewer-body"></div>
           </article>
         </div>
+        <section id="familyShell" class="panel analysis-panel loading-region" hidden>
+          <div class="panel-title">
+            <h3>Same-Lattice Expansions</h3>
+            <button class="info-button" type="button" data-info-title="Same-Lattice Expansions" data-info-body="This section groups residuated lattices that share the same underlying lattice. The Hasse diagram above stays fixed while the cards below show different multiplication tables for the same base order.">i</button>
+          </div>
+          <div id="familyPanel"></div>
+        </section>
       </section>
     </main>
     <dialog id="infoDialog" class="info-dialog">

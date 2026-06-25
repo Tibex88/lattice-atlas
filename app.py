@@ -5,6 +5,7 @@ import os
 import pickle
 import sys
 import tempfile
+from bisect import bisect_left, bisect_right
 from functools import lru_cache
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -259,6 +260,15 @@ def load_dataset(dataset, n):
 
 def object_count(obj):
     return len(obj)
+
+
+def lattice_encoding_nbytes(n):
+    upper_triangle_size = n * (n + 1) // 2
+    return upper_triangle_size // 8 + (1 if upper_triangle_size % 8 else 0)
+
+
+def base_encoding_from_reslat(encoding, n):
+    return encoding[: lattice_encoding_nbytes(n)]
 
 
 def dataset_property_keys(dataset):
@@ -609,6 +619,7 @@ def dataset_summary():
             }
             if isinstance(obj, dict) and obj:
                 row["max_count"] = max(obj.values())
+                row["reducts"] = sum(1 for count in obj.values() if count > 0)
             rows.append(row)
     return rows
 
@@ -624,7 +635,7 @@ def level_metrics(n):
     lat = summary.get(("lat", n), {}).get("entries", 0)
     reslat = summary.get(("reslat", n), {}).get("entries", 0)
     max_expansions = summary.get(("extlat", n), {}).get("max_count", 0)
-    reducts = sum(1 for count in load_dataset("extlat", n).values() if count > 0)
+    reducts = summary.get(("extlat", n), {}).get("reducts", 0)
     return {
         "n": n,
         "lattices": lat,
@@ -701,6 +712,54 @@ def filter_bounds(dataset, n):
     return result
 
 
+def decode_reslat_family_item(n, index, enc):
+    structure = ResiduatedLattice.decode(enc, n)
+    return {
+        "index": index,
+        "encoding": enc.hex(),
+        "mult_table": structure._mult,
+    }
+
+
+def reslat_family(n, index, limit=12):
+    items = ordered_dataset_items("reslat", n)
+    if index < 0 or index >= len(items):
+        raise NotFoundError(
+            f"index {index} out of range for reslat{n} ({len(items)} entries)",
+            details={"dataset": "reslat", "n": n, "index": index, "total": len(items)},
+        )
+    selected_enc, _ = items[index]
+    base_encoding = base_encoding_from_reslat(selected_enc, n)
+    suffix_len = len(selected_enc) - len(base_encoding)
+    lower = (base_encoding, None)
+    upper = (base_encoding + (b"\xff" * suffix_len), None)
+    lo = bisect_left(items, lower)
+    hi = bisect_right(items, upper)
+    total = hi - lo
+    if total <= limit:
+        start = lo
+        end = hi
+    else:
+        half = limit // 2
+        start = max(lo, min(index - half, hi - limit))
+        end = min(hi, start + limit)
+    extlat_count = load_dataset("extlat", n).get(base_encoding, total)
+    entries = [
+        decode_reslat_family_item(n, family_index, enc)
+        for family_index, (enc, _) in enumerate(items[start:end], start=start)
+    ]
+    return {
+        "n": n,
+        "selected_index": index,
+        "base_encoding": base_encoding.hex(),
+        "total_expansions": extlat_count,
+        "shown": len(entries),
+        "range_start": start,
+        "range_end": end,
+        "items": entries,
+    }
+
+
 class Handler(SimpleHTTPRequestHandler):
     def send_response(self, code, message=None):
         self._status_code = code
@@ -743,6 +802,12 @@ class Handler(SimpleHTTPRequestHandler):
             n = parse_int(params, "n", default=1)
             limit = parse_int(params, "limit", default=12)
             self.send_json(extlat_rankings(n, limit))
+            return
+        if parsed.path == "/api/reslat-family":
+            n = parse_int(params, "n")
+            index = parse_int(params, "index")
+            limit = parse_int(params, "limit", default=12)
+            self.send_json(reslat_family(n, index, limit))
             return
         if parsed.path == "/api/items":
             dataset = parse_dataset(params)
