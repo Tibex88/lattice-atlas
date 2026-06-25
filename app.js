@@ -1,6 +1,7 @@
 const state = {
   dataset: "lat",
   level: 6,
+  trendMode: "counts",
   pageSize: 50,
   offset: 0,
   total: 0,
@@ -245,6 +246,7 @@ const LoadingHub = (() => {
         analysis: { element: byId("analysisShell"), disable: "button, input, select" },
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
         secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
+        family: { element: byId("familyShell"), disable: "button, input, select" },
       };
       const config = configs[name];
       if (!config?.element) {
@@ -424,6 +426,10 @@ function buildSummaryIndex(rows) {
   return index;
 }
 
+function summaryRow(index, dataset, n) {
+  return index.get(`${dataset}:${n}`) || null;
+}
+
 function renderSummary(rows) {
   const box = byId("summary");
   box.innerHTML = rows.map((row) => {
@@ -599,50 +605,121 @@ function renderMetricCards(metrics) {
 }
 
 function renderTrendChart() {
+  const toggleButtons = [
+    ["trendCounts", state.trendMode === "counts"],
+    ["trendRatios", state.trendMode === "ratios"],
+  ];
+  toggleButtons.forEach(([id, active]) => {
+    const button = byId(id);
+    if (button) {
+      button.classList.toggle("is-active", active);
+    }
+  });
   const width = 760;
   const height = 280;
   const margin = { top: 18, right: 16, bottom: 34, left: 56 };
   const chartW = width - margin.left - margin.right;
   const chartH = height - margin.top - margin.bottom;
-  const datasets = ["lat", "extlat", "reslat"];
-  const colors = { lat: "#0f766e", extlat: "#c2410c", reslat: "#2563eb" };
-  const labels = { lat: "lattices", extlat: "reducts", reslat: "residuated" };
   const summaryIndex = buildSummaryIndex(state.summaryRows);
-  const points = datasets.map((dataset) => Array.from({ length: 12 }, (_, offset) => {
-    const n = offset + 1;
-    const row = summaryIndex.get(`${dataset}:${n}`);
-    return { n, value: row ? row.entries : 0 };
-  }));
-  const values = points.flat().map((point) => Math.max(point.value, 1));
-  const minLog = Math.log10(Math.min(...values));
-  const maxLog = Math.log10(Math.max(...values));
+  let series;
+  let yTicks;
+  let y;
+  let gridLines = [];
+  let legend = "";
   const x = (n) => margin.left + ((n - 1) / 11) * chartW;
-  const y = (value) => {
-    const lv = Math.log10(Math.max(value, 1));
-    return margin.top + (maxLog - lv) / Math.max(maxLog - minLog, 1) * chartH;
-  };
-  const gridLines = [];
-  for (let p = Math.floor(minLog); p <= Math.ceil(maxLog); p += 1) {
-    const yy = y(10 ** p);
-    gridLines.push(`<line x1="${margin.left}" y1="${yy}" x2="${width - margin.right}" y2="${yy}" class="chart-grid"></line>`);
-    gridLines.push(`<text x="${margin.left - 10}" y="${yy + 4}" text-anchor="end" class="chart-axis">1e${p}</text>`);
+
+  if (state.trendMode === "counts") {
+    const datasets = [
+      { key: "lat", color: "#0f766e", label: "lattices" },
+      { key: "extlat", color: "#c2410c", label: "reducts" },
+      { key: "reslat", color: "#2563eb", label: "residuated" },
+    ];
+    series = datasets.map((dataset) => ({
+      ...dataset,
+      points: Array.from({ length: 12 }, (_, offset) => {
+        const n = offset + 1;
+        if (dataset.key === "extlat") {
+          const row = summaryRow(summaryIndex, "extlat", n);
+          return { n, value: row ? row.reducts || 0 : 0 };
+        }
+        const row = summaryRow(summaryIndex, dataset.key, n);
+        return { n, value: row ? row.entries : 0 };
+      }),
+    }));
+    const values = series.flatMap((item) => item.points.map((point) => Math.max(point.value, 1)));
+    const minLog = Math.log10(Math.min(...values));
+    const maxLog = Math.log10(Math.max(...values));
+    y = (value) => {
+      const lv = Math.log10(Math.max(value, 1));
+      return margin.top + (maxLog - lv) / Math.max(maxLog - minLog, 1) * chartH;
+    };
+    for (let p = Math.floor(minLog); p <= Math.ceil(maxLog); p += 1) {
+      const yy = y(10 ** p);
+      gridLines.push(`<line x1="${margin.left}" y1="${yy}" x2="${width - margin.right}" y2="${yy}" class="chart-grid"></line>`);
+      gridLines.push(`<text x="${margin.left - 10}" y="${yy + 4}" text-anchor="end" class="chart-axis">1e${p}</text>`);
+    }
+  } else {
+    series = [
+      {
+        key: "reduct_ratio",
+        color: "#c2410c",
+        label: "reducts / lattices",
+        points: Array.from({ length: 12 }, (_, offset) => {
+          const n = offset + 1;
+          const lat = summaryRow(summaryIndex, "lat", n)?.entries || 0;
+          const reducts = summaryRow(summaryIndex, "extlat", n)?.reducts || 0;
+          return { n, value: lat ? reducts / lat : 0 };
+        }),
+      },
+      {
+        key: "reslat_ratio",
+        color: "#2563eb",
+        label: "residuated / lattices",
+        points: Array.from({ length: 12 }, (_, offset) => {
+          const n = offset + 1;
+          const lat = summaryRow(summaryIndex, "lat", n)?.entries || 0;
+          const reslat = summaryRow(summaryIndex, "reslat", n)?.entries || 0;
+          return { n, value: lat ? reslat / lat : 0 };
+        }),
+      },
+      {
+        key: "expansion_ratio",
+        color: "#0f766e",
+        label: "residuated / reducts",
+        points: Array.from({ length: 12 }, (_, offset) => {
+          const n = offset + 1;
+          const reducts = summaryRow(summaryIndex, "extlat", n)?.reducts || 0;
+          const reslat = summaryRow(summaryIndex, "reslat", n)?.entries || 0;
+          return { n, value: reducts ? reslat / reducts : 0 };
+        }),
+      },
+    ];
+    const maxValue = Math.max(...series.flatMap((item) => item.points.map((point) => point.value)), 1);
+    yTicks = 5;
+    y = (value) => margin.top + (1 - (value / Math.max(maxValue, 1))) * chartH;
+    for (let i = 0; i <= yTicks; i += 1) {
+      const value = (maxValue / yTicks) * i;
+      const yy = y(value);
+      gridLines.push(`<line x1="${margin.left}" y1="${yy}" x2="${width - margin.right}" y2="${yy}" class="chart-grid"></line>`);
+      gridLines.push(`<text x="${margin.left - 10}" y="${yy + 4}" text-anchor="end" class="chart-axis">${numberFmt(value, 2)}</text>`);
+    }
   }
   const xTicks = Array.from({ length: 12 }, (_, offset) => {
     const n = offset + 1;
     return `<text x="${x(n)}" y="${height - 10}" text-anchor="middle" class="chart-axis">${n}</text>`;
   }).join("");
-  const lines = datasets.map((dataset, idx) => {
-    const pts = points[idx].map((point) => `${x(point.n)},${y(point.value)}`).join(" ");
-    const highlight = points[idx].find((point) => point.n === state.level);
+  const lines = series.map((item) => {
+    const pts = item.points.map((point) => `${x(point.n)},${y(point.value)}`).join(" ");
+    const highlight = item.points.find((point) => point.n === state.level);
     return `
-      <polyline fill="none" stroke="${colors[dataset]}" stroke-width="3" points="${pts}"></polyline>
-      <circle cx="${x(highlight.n)}" cy="${y(highlight.value)}" r="5" fill="${colors[dataset]}"></circle>
+      <polyline fill="none" stroke="${item.color}" stroke-width="3" points="${pts}"></polyline>
+      <circle cx="${x(highlight.n)}" cy="${y(highlight.value)}" r="5" fill="${item.color}"></circle>
     `;
   }).join("");
-  const legend = datasets.map((dataset, index) => `
+  legend = series.map((item, index) => `
     <g transform="translate(${margin.left + index * 150}, ${height - 2})">
-      <circle cx="0" cy="0" r="5" fill="${colors[dataset]}"></circle>
-      <text x="10" y="4" class="chart-axis">${labels[dataset]}</text>
+      <circle cx="0" cy="0" r="5" fill="${item.color}"></circle>
+      <text x="10" y="4" class="chart-axis">${item.label}</text>
     </g>
   `).join("");
   byId("trendChart").innerHTML = `
@@ -802,6 +879,15 @@ function renderMatrix(title, matrix) {
   return `<div><h4>${title}</h4><table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+function renderDiffMatrix(title, matrix, reference) {
+  const headers = matrix[0].map((_, i) => `<th>${i}</th>`).join("");
+  const rows = matrix.map((row, i) => `<tr><th>${i}</th>${row.map((value, j) => {
+    const changed = reference && reference[i][j] !== value;
+    return `<td class="${changed ? "cell-diff" : ""}">${value}</td>`;
+  }).join("")}</tr>`).join("");
+  return `<div><h4>${title}</h4><table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 function renderViewer(target, entry) {
   const box = byId(`${target}View`);
   box.innerHTML = `
@@ -826,6 +912,81 @@ function renderViewer(target, entry) {
     </div>
   `;
   wireInfoButtons(box);
+}
+
+function hideFamilyPanel() {
+  const shell = byId("familyShell");
+  const panel = byId("familyPanel");
+  shell.hidden = true;
+  panel.innerHTML = "";
+}
+
+function renderFamilyPanel(payload, selectedEntry) {
+  const shell = byId("familyShell");
+  const panel = byId("familyPanel");
+  shell.hidden = false;
+  const summary = payload.shown < payload.total_expansions
+    ? `Showing ${payload.shown} of ${numberFmt(payload.total_expansions)} expansions`
+    : `${numberFmt(payload.total_expansions)} expansions`;
+  const cards = payload.items.map((item) => {
+    const diffCount = item.mult_table.flatMap((row, i) => row.map((value, j) => (
+      selectedEntry.mult_table[i][j] !== value ? 1 : 0
+    ))).reduce((sum, value) => sum + value, 0);
+    const status = item.index === selectedEntry.index ? "Selected" : `${diffCount} differing cells`;
+    return `
+      <article class="family-card ${item.index === selectedEntry.index ? "is-selected" : ""}">
+        <div class="family-card-head">
+          <div>
+            <div><strong>#${item.index}</strong></div>
+            <div class="meta">${status}</div>
+          </div>
+          <div class="family-actions">
+            <button class="ghost-button family-primary" data-index="${item.index}" type="button">Primary</button>
+            <button class="ghost-button family-secondary" data-index="${item.index}" type="button">Secondary</button>
+          </div>
+        </div>
+        ${renderDiffMatrix("Multiplication Table", item.mult_table, selectedEntry.mult_table)}
+      </article>
+    `;
+  }).join("");
+  panel.innerHTML = `
+    <div class="family-summary">
+      <div class="subtle-label">Base lattice <code>${payload.base_encoding.slice(0, 24)}${payload.base_encoding.length > 24 ? "..." : ""}</code></div>
+      <div class="family-meta">${summary}</div>
+    </div>
+    <div class="family-grid">${cards}</div>
+  `;
+  panel.querySelectorAll(".family-primary").forEach((button) => {
+    button.addEventListener("click", async () => {
+      byId("dataset").value = "reslat";
+      state.dataset = "reslat";
+      byId("level").value = payload.n;
+      state.level = Number(payload.n);
+      byId("primaryIndex").value = button.dataset.index;
+      await fetchPropertyFilters();
+      await syncPrimaryContext();
+    });
+  });
+  panel.querySelectorAll(".family-secondary").forEach((button) => {
+    button.addEventListener("click", () => {
+      byId("secondaryDataset").value = "reslat";
+      byId("secondaryLevel").value = payload.n;
+      byId("secondaryIndex").value = button.dataset.index;
+      loadViewer("secondary");
+    });
+  });
+}
+
+async function loadFamilyComparison(entry) {
+  if (entry.dataset !== "reslat") {
+    hideFamilyPanel();
+    return;
+  }
+  byId("familyShell").hidden = false;
+  return loading.run("family", "Loading expansions for this lattice...", async () => {
+    const payload = await fetchJson(`/api/reslat-family?n=${entry.n}&index=${entry.index}&limit=12`);
+    renderFamilyPanel(payload, entry);
+  });
 }
 
 function wireInfoButtons(scope = document) {
@@ -916,6 +1077,9 @@ async function loadViewer(target) {
     try {
       const entry = await fetchJson(`/api/entry?dataset=${dataset}&n=${level}&index=${index}`);
       renderViewer(target, entry);
+      if (target === "primary") {
+        await loadFamilyComparison(entry);
+      }
     } catch (error) {
       const appError = errors.handle(error, {
         source: `viewer.${target}`,
@@ -924,6 +1088,9 @@ async function loadViewer(target) {
         target,
       });
       byId(boxId).innerHTML = `<div class="empty">${appError.message}</div>`;
+      if (target === "primary") {
+        hideFamilyPanel();
+      }
     }
   });
 }
@@ -965,6 +1132,14 @@ async function boot() {
   wireDoubleSlider("Height");
   wireInfoButtons();
   wireSummaryDialog();
+  byId("trendCounts").addEventListener("click", () => {
+    state.trendMode = "counts";
+    renderTrendChart();
+  });
+  byId("trendRatios").addEventListener("click", () => {
+    state.trendMode = "ratios";
+    renderTrendChart();
+  });
 
   byId("dataset").addEventListener("change", protect("controls.primary_dataset", async (e) => {
     state.dataset = e.target.value;
