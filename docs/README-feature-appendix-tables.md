@@ -16,6 +16,11 @@ This aligns the site closely with the paper's published outputs.
 - Exportable CSV
 - Table download buttons
 
+## UI Shape
+- A dedicated tables view or modal
+- Dense but readable statistical tables with sticky headers
+- Export controls near the table title
+
 ## Data Needed
 - Aggregated statistics over datasets
 

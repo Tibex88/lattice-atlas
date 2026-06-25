@@ -17,6 +17,11 @@ The paper emphasizes how structure distributions shift with size, especially the
 - Ratio badges
 - Hoverable exact values
 
+## UI Shape
+- A chart panel with one or more line graphs
+- Toggle buttons for raw counts vs percentages
+- Hover tooltips for exact values and slope changes across sizes
+
 ## Data Needed
 - Counts by size for all core datasets
 - Optional linear counts

@@ -16,6 +16,11 @@ This is one of the clearest ways to explain what `extlat` and `reslat` mean.
 - Multi-select comparison panel
 - Diff highlighting in multiplication tables
 
+## UI Shape
+- A grouped list keyed by the base lattice
+- One fixed lattice graph with multiple expansion panes beside or below it
+- Visual highlights on multiplication cells that differ between expansions
+
 ## Data Needed
 - Way to map `reslat` encodings back to base lattice encodings
 - `extlat` counts

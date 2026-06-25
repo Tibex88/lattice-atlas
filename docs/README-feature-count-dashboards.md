@@ -17,6 +17,11 @@ This is the most direct way to expose the paper's main computational result: com
 - Small trend table for sizes `1..12`
 - Optional chart for total counts
 
+## UI Shape
+- A top-row strip of statistic cards
+- Each card showing a headline count and a small sparkline or trend hint
+- A compact drill-down table or popup for exact values by size
+
 ## Data Needed
 - `lat<n>.db`
 - `reslat<n>.db`

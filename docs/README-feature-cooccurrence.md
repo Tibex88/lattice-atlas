@@ -14,6 +14,11 @@ The paper discusses dependencies and rare combinations of properties.
 - Heatmap
 - Click a cell to inspect matching structures
 
+## UI Shape
+- A square heatmap matrix with property names on both axes
+- Color intensity representing count or normalized strength
+- Clicking a cell filters or opens matching structures
+
 ## Data Needed
 - Property evaluations across a dataset
 

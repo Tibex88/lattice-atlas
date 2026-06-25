@@ -16,6 +16,11 @@ This directly uses the distinctive `extlat` dataset and shows which lattices are
 - Histogram of counts
 - Click-through into the corresponding lattice
 
+## UI Shape
+- A ranked table with sortable columns
+- A companion histogram showing how expansion counts are distributed
+- Row click opens the base lattice in the compare area
+
 ## Data Needed
 - `extlat<n>.db` values
 

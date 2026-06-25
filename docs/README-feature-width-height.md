@@ -17,6 +17,11 @@ The paper treats width and height as important structural characteristics and us
 - Bar charts for marginals
 - Filter by dataset and size
 
+## UI Shape
+- A central heatmap grid for width/height combinations
+- Small side bar charts showing width-only and height-only totals
+- Clickable cells that open matching structures in the browser panes
+
 ## Data Needed
 - Per-structure width
 - Per-structure height
