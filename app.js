@@ -6,6 +6,7 @@ const state = {
   total: 0,
   summaryRows: [],
   filterBounds: null,
+  propertyOptions: [],
   filters: {
     widthMin: "",
     widthMax: "",
@@ -19,6 +20,334 @@ const state = {
 
 const byId = (id) => document.getElementById(id);
 
+class AppError extends Error {
+  constructor(message, { kind = "runtime", status = null, requestId = null, context = {}, cause = null } = {}) {
+    super(message);
+    this.name = "AppError";
+    this.kind = kind;
+    this.status = status;
+    this.requestId = requestId;
+    this.context = context;
+    this.cause = cause;
+  }
+}
+
+const Logger = (() => {
+  let instance;
+
+  class BrowserLogger {
+    _emit(level, event, details = {}) {
+      const stamp = new Date().toISOString();
+      const method = level === "error" ? "error" : level === "warn" ? "warn" : "log";
+      const prefix = `[Residuals][${level.toUpperCase()}][${stamp}] ${event}`;
+      const payload = Object.fromEntries(Object.entries(details).filter(([, value]) => value != null));
+      if (Object.keys(payload).length) {
+        console[method](prefix, payload);
+      } else {
+        console[method](prefix);
+      }
+    }
+
+    info(event, details) {
+      this._emit("info", event, details);
+    }
+
+    warn(event, details) {
+      this._emit("warn", event, details);
+    }
+
+    error(event, details) {
+      this._emit("error", event, details);
+    }
+  }
+
+  return {
+    get() {
+      if (!instance) {
+        instance = new BrowserLogger();
+      }
+      return instance;
+    },
+  };
+})();
+
+const logger = Logger.get();
+
+const ErrorHub = (() => {
+  let instance;
+
+  class BrowserErrorHub {
+    constructor() {
+      this.globalHandlersInstalled = false;
+    }
+
+    installGlobalHandlers() {
+      if (this.globalHandlersInstalled) {
+        return;
+      }
+      this.globalHandlersInstalled = true;
+      window.addEventListener("error", (event) => {
+        this.handle(event.error || new Error(event.message), { source: "window.error", kind: "runtime" });
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        this.handle(event.reason || new Error("Unhandled promise rejection"), {
+          source: "window.unhandledrejection",
+          kind: "runtime",
+        });
+      });
+    }
+
+    normalize(error, context = {}) {
+      if (error instanceof AppError) {
+        return error;
+      }
+      if (context.kind) {
+        return new AppError(error?.message || "Application error.", {
+          kind: context.kind,
+          context,
+          cause: error,
+        });
+      }
+      if (error instanceof TypeError && /fetch/i.test(error.message)) {
+        return new AppError(error.message, {
+          kind: "network",
+          context,
+          cause: error,
+        });
+      }
+      if (context.source && /render|viewer|controls|boot/.test(context.source)) {
+        return new AppError(error?.message || "Interface error.", {
+          kind: "ui",
+          context,
+          cause: error,
+        });
+      }
+      return new AppError(error?.message || "Unexpected runtime error.", {
+        kind: "runtime",
+        context,
+        cause: error,
+      });
+    }
+
+    ensureNotice() {
+      let notice = byId("globalNotice");
+      if (notice || !document.body) {
+        return notice;
+      }
+      notice = document.createElement("div");
+      notice.id = "globalNotice";
+      notice.className = "global-notice";
+
+      const text = document.createElement("div");
+      text.className = "global-notice-copy";
+
+      const title = document.createElement("strong");
+      title.id = "globalNoticeTitle";
+
+      const body = document.createElement("span");
+      body.id = "globalNoticeBody";
+
+      text.append(title, body);
+
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "global-notice-close";
+      close.textContent = "Dismiss";
+      close.addEventListener("click", () => this.clear());
+
+      notice.append(text, close);
+      document.body.prepend(notice);
+      return notice;
+    }
+
+    present(error) {
+      const notice = this.ensureNotice();
+      if (!notice) {
+        return;
+      }
+      const titleMap = {
+        network: "Data request failed",
+        ui: "Interface error",
+        runtime: "Unexpected error",
+      };
+      notice.dataset.kind = error.kind;
+      byId("globalNoticeTitle").textContent = `${titleMap[error.kind] || "Application error"}: `;
+      byId("globalNoticeBody").textContent = error.requestId
+        ? `${error.message} Request ${error.requestId}.`
+        : error.message;
+    }
+
+    clear() {
+      const notice = byId("globalNotice");
+      if (notice) {
+        notice.remove();
+      }
+    }
+
+    handle(error, context = {}) {
+      const appError = this.normalize(error, context);
+      const log = appError.kind === "network" && appError.status && appError.status < 500 ? "warn" : "error";
+      logger[log]("error.captured", {
+        kind: appError.kind,
+        status: appError.status,
+        requestId: appError.requestId,
+        message: appError.message,
+        source: context.source,
+        context: appError.context,
+        cause: appError.cause?.message,
+      });
+      if (!context.silent) {
+        this.present(appError);
+      }
+      return appError;
+    }
+  }
+
+  return {
+    get() {
+      if (!instance) {
+        instance = new BrowserErrorHub();
+      }
+      return instance;
+    },
+  };
+})();
+
+const errors = ErrorHub.get();
+
+function protect(source, fn, baseContext = {}) {
+  return async (...args) => {
+    try {
+      return await fn(...args);
+    } catch (error) {
+      errors.handle(error, { ...baseContext, source });
+      return null;
+    }
+  };
+}
+
+const LoadingHub = (() => {
+  let instance;
+
+  class Loader {
+    constructor() {
+      this.regions = new Map();
+    }
+
+    ensureRegion(name) {
+      if (this.regions.has(name)) {
+        return this.regions.get(name);
+      }
+      const configs = {
+        summary: { element: byId("summary") },
+        controls: { element: byId("controlsPanel"), disable: "button, input, select" },
+        entries: { element: byId("entriesPanel"), disable: "button, input, select" },
+        analysis: { element: byId("analysisShell"), disable: "button, input, select" },
+        primary: { element: byId("primaryCard"), disable: "button, input, select" },
+        secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
+      };
+      const config = configs[name];
+      if (!config?.element) {
+        return null;
+      }
+      const region = {
+        ...config,
+        count: 0,
+        disabled: new Map(),
+      };
+      this.regions.set(name, region);
+      return region;
+    }
+
+    set(name, label) {
+      const region = this.ensureRegion(name);
+      if (!region) {
+        return;
+      }
+      region.count += 1;
+      region.element.dataset.loading = "true";
+      region.element.dataset.loadingLabel = label || "Loading...";
+      if (!region.overlay) {
+        const overlay = document.createElement("div");
+        overlay.className = "loading-overlay";
+        overlay.innerHTML = `
+          <div class="loading-overlay-card">
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <div class="loading-text"></div>
+          </div>
+        `;
+        region.overlay = overlay;
+      }
+      region.overlay.querySelector(".loading-text").textContent = region.element.dataset.loadingLabel;
+      if (!region.overlay.isConnected) {
+        region.element.append(region.overlay);
+      }
+      if (region.disable) {
+        region.element.querySelectorAll(region.disable).forEach((node) => {
+          if (!region.disabled.has(node)) {
+            region.disabled.set(node, !!node.disabled);
+          }
+          node.disabled = true;
+        });
+      }
+    }
+
+    clear(name) {
+      const region = this.ensureRegion(name);
+      if (!region) {
+        return;
+      }
+      region.count = Math.max(region.count - 1, 0);
+      if (region.count > 0) {
+        return;
+      }
+      delete region.element.dataset.loading;
+      delete region.element.dataset.loadingLabel;
+      region.overlay?.remove();
+      region.disabled.forEach((wasDisabled, node) => {
+        node.disabled = wasDisabled;
+      });
+      region.disabled.clear();
+    }
+
+    async run(name, label, fn) {
+      this.set(name, label);
+      try {
+        return await fn();
+      } finally {
+        this.clear(name);
+      }
+    }
+  }
+
+  return {
+    get() {
+      if (!instance) {
+        instance = new Loader();
+      }
+      return instance;
+    },
+  };
+})();
+
+const loading = LoadingHub.get();
+
+async function fetchPropertyFilters() {
+  return loading.run("controls", "Loading property filters...", async () => {
+    const payload = await fetchJson(`/api/filter-options?dataset=${state.dataset}`);
+    renderPropertyFilters(payload);
+    return payload;
+  });
+}
+
+async function loadSummary() {
+  return loading.run("summary", "Loading summary...", async () => {
+    state.summaryRows = await fetchJson("/api/summary");
+    renderSummary(state.summaryRows);
+    return state.summaryRows;
+  });
+}
+
 async function fetchJson(url) {
   const candidates = [url];
   if (window.location.port !== "8000") {
@@ -26,14 +355,44 @@ async function fetchJson(url) {
   }
   let lastError;
   for (const candidate of candidates) {
+    const started = performance.now();
     try {
       const res = await fetch(candidate);
+      const payload = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(`Request failed: ${candidate}`);
+        throw new AppError(
+          payload?.error?.message || `Request failed with status ${res.status}.`,
+          {
+            kind: "network",
+            status: res.status,
+            requestId: payload?.error?.request_id || null,
+            context: {
+              url: candidate,
+              errorKind: payload?.error?.kind || null,
+            },
+          },
+        );
       }
-      return res.json();
+      logger.info("api.request", {
+        url: candidate,
+        status: res.status,
+        durationMs: Math.round(performance.now() - started),
+      });
+      return payload;
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof AppError
+        ? error
+        : new AppError(error.message || "Fetch failed.", {
+          kind: "network",
+          context: { url: candidate },
+          cause: error,
+        });
+      logger.warn("api.request_failed", {
+        url: candidate,
+        status: lastError.status,
+        requestId: lastError.requestId,
+        message: lastError.message,
+      });
     }
   }
   throw lastError;
@@ -41,6 +400,15 @@ async function fetchJson(url) {
 
 function optionMarkup(values, selected) {
   return values.map((value) => `<option value="${value}" ${String(value) === String(selected) ? "selected" : ""}>${value}</option>`).join("");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function numberFmt(value, digits = 0) {
@@ -115,6 +483,7 @@ function clearFilterInputs() {
 }
 
 function renderPropertyFilters(payload) {
+  state.propertyOptions = payload.properties;
   byId("countFilterRow").style.display = state.dataset === "extlat" ? "grid" : "none";
   byId("propertyFilters").innerHTML = payload.properties.map((prop) => `
     <label class="property-item">
@@ -122,6 +491,22 @@ function renderPropertyFilters(payload) {
       <span>${prop.label}</span>
     </label>
   `).join("");
+  const infoButton = byId("propertyFiltersInfo");
+  if (infoButton) {
+    const definitions = payload.properties.map((prop) => `
+      <div class="info-definition-item">
+        <div class="info-definition-head">
+          <strong>${escapeHtml(prop.label)}</strong>
+          <span class="info-definition-kind">${escapeHtml(prop.kind)}</span>
+        </div>
+        <div class="meta">${escapeHtml(prop.description || "")}</div>
+      </div>
+    `).join("");
+    infoButton.dataset.infoBodyHtml = `
+      <div class="meta">These filters come from the current dataset's property schema.</div>
+      <div class="info-definition-list">${definitions}</div>
+    `;
+  }
 }
 
 function updateDoubleSlider(name) {
@@ -170,20 +555,22 @@ function wireDoubleSlider(name) {
 }
 
 async function loadFilterBounds() {
-  state.filterBounds = await fetchJson(`/api/filter-bounds?dataset=${state.dataset}&n=${state.level}`);
-  const widthMin = byId("filterWidthMin");
-  const widthMax = byId("filterWidthMax");
-  const heightMin = byId("filterHeightMin");
-  const heightMax = byId("filterHeightMax");
-  widthMin.min = state.filterBounds.width_min;
-  widthMin.max = state.filterBounds.width_max;
-  widthMax.min = state.filterBounds.width_min;
-  widthMax.max = state.filterBounds.width_max;
-  heightMin.min = state.filterBounds.height_min;
-  heightMin.max = state.filterBounds.height_max;
-  heightMax.min = state.filterBounds.height_min;
-  heightMax.max = state.filterBounds.height_max;
-  clearFilterInputs();
+  return loading.run("controls", "Loading filter bounds...", async () => {
+    state.filterBounds = await fetchJson(`/api/filter-bounds?dataset=${state.dataset}&n=${state.level}`);
+    const widthMin = byId("filterWidthMin");
+    const widthMax = byId("filterWidthMax");
+    const heightMin = byId("filterHeightMin");
+    const heightMax = byId("filterHeightMax");
+    widthMin.min = state.filterBounds.width_min;
+    widthMin.max = state.filterBounds.width_max;
+    widthMax.min = state.filterBounds.width_min;
+    widthMax.max = state.filterBounds.width_max;
+    heightMin.min = state.filterBounds.height_min;
+    heightMin.max = state.filterBounds.height_max;
+    heightMax.min = state.filterBounds.height_min;
+    heightMax.max = state.filterBounds.height_max;
+    clearFilterInputs();
+  });
 }
 
 function renderMetricCards(metrics) {
@@ -452,7 +839,11 @@ function wireInfoButtons(scope = document) {
     button.dataset.infoWired = "1";
     button.addEventListener("click", () => {
       title.textContent = button.dataset.infoTitle || "Info";
-      body.textContent = button.dataset.infoBody || "";
+      if (button.dataset.infoBodyHtml) {
+        body.innerHTML = button.dataset.infoBodyHtml;
+      } else {
+        body.textContent = button.dataset.infoBody || "";
+      }
       dialog.showModal();
     });
   });
@@ -483,42 +874,63 @@ function wireSummaryDialog() {
 }
 
 async function loadAnalysis() {
-  const [metrics, widthHeight, rankings] = await Promise.all([
-    fetchJson(`/api/level-metrics?n=${state.level}`),
-    fetchJson(`/api/width-height?dataset=${state.dataset}&n=${state.level}`),
-    fetchJson(`/api/extlat-rankings?n=${state.level}&limit=10`),
-  ]);
-  renderMetricCards(metrics);
-  renderTrendChart();
-  renderWidthHeight(widthHeight);
-  renderRankingPanel(rankings);
+  return loading.run("analysis", "Loading analysis...", async () => {
+    const [metrics, widthHeight, rankings] = await Promise.all([
+      fetchJson(`/api/level-metrics?n=${state.level}`),
+      fetchJson(`/api/width-height?dataset=${state.dataset}&n=${state.level}`),
+      fetchJson(`/api/extlat-rankings?n=${state.level}&limit=10`),
+    ]);
+    renderMetricCards(metrics);
+    renderTrendChart();
+    renderWidthHeight(widthHeight);
+    renderRankingPanel(rankings);
+  });
 }
 
 async function loadEntries() {
-  const query = currentFilterQuery();
-  const payload = await fetchJson(`/api/items?dataset=${state.dataset}&n=${state.level}&limit=${state.pageSize}&offset=${state.offset}${query ? `&${query}` : ""}`);
-  renderEntryList(payload);
+  return loading.run("entries", "Loading entries...", async () => {
+    const query = currentFilterQuery();
+    const payload = await fetchJson(`/api/items?dataset=${state.dataset}&n=${state.level}&limit=${state.pageSize}&offset=${state.offset}${query ? `&${query}` : ""}`);
+    renderEntryList(payload);
+  });
 }
 
 async function loadViewer(target) {
   let dataset;
   let level;
   let index;
+  let boxId;
   if (target === "primary") {
     dataset = state.dataset;
     level = state.level;
     index = byId("primaryIndex").value || 0;
+    boxId = "primaryView";
   } else {
     dataset = byId("secondaryDataset").value;
     level = byId("secondaryLevel").value;
     index = byId("secondaryIndex").value || 0;
+    boxId = "secondaryView";
   }
-  const entry = await fetchJson(`/api/entry?dataset=${dataset}&n=${level}&index=${index}`);
-  renderViewer(target, entry);
+  const region = target === "primary" ? "primary" : "secondary";
+  return loading.run(region, `Loading ${target} view...`, async () => {
+    try {
+      const entry = await fetchJson(`/api/entry?dataset=${dataset}&n=${level}&index=${index}`);
+      renderViewer(target, entry);
+    } catch (error) {
+      const appError = errors.handle(error, {
+        source: `viewer.${target}`,
+        kind: error.status === 404 ? "ui" : undefined,
+        silent: error.status === 404,
+        target,
+      });
+      byId(boxId).innerHTML = `<div class="empty">${appError.message}</div>`;
+    }
+  });
 }
 
 async function syncPrimaryContext() {
   state.offset = 0;
+  byId("primaryIndex").value = 0;
   await Promise.all([loadFilterBounds(), loadAnalysis()]);
   await loadEntries();
   await loadViewer("primary");
@@ -528,16 +940,21 @@ async function syncSecondaryViewer() {
   await loadViewer("secondary");
 }
 
+async function syncSecondaryContext() {
+  byId("secondaryIndex").value = 0;
+  await loadViewer("secondary");
+}
+
 async function boot() {
+  errors.installGlobalHandlers();
   const levels = Array.from({ length: 12 }, (_, i) => i + 1);
   const datasets = ["lat", "extlat", "reslat"];
   byId("dataset").innerHTML = optionMarkup(datasets, state.dataset);
   byId("secondaryDataset").innerHTML = optionMarkup(datasets, "reslat");
   byId("level").innerHTML = optionMarkup(levels, state.level);
   byId("secondaryLevel").innerHTML = optionMarkup(levels, state.level);
-  state.summaryRows = await fetchJson("/api/summary");
-  renderSummary(state.summaryRows);
-  renderPropertyFilters(await fetchJson(`/api/filter-options?dataset=${state.dataset}`));
+  await loadSummary();
+  await fetchPropertyFilters();
   await loadFilterBounds();
   await Promise.all([loadEntries(), loadAnalysis()]);
   byId("primaryIndex").value = 0;
@@ -549,49 +966,46 @@ async function boot() {
   wireInfoButtons();
   wireSummaryDialog();
 
-  byId("dataset").addEventListener("change", async (e) => {
+  byId("dataset").addEventListener("change", protect("controls.primary_dataset", async (e) => {
     state.dataset = e.target.value;
     clearFilterInputs();
-    renderPropertyFilters(await fetchJson(`/api/filter-options?dataset=${state.dataset}`));
+    await fetchPropertyFilters();
     await syncPrimaryContext();
-  });
-  byId("level").addEventListener("change", async (e) => {
+  }, { kind: "ui" }));
+  byId("level").addEventListener("change", protect("controls.primary_level", async (e) => {
     state.level = Number(e.target.value);
     await syncPrimaryContext();
-  });
-  byId("pageSize").addEventListener("change", async (e) => {
+  }, { kind: "ui" }));
+  byId("pageSize").addEventListener("change", protect("controls.page_size", async (e) => {
     state.pageSize = Number(e.target.value);
     state.offset = 0;
     await loadEntries();
-  });
-  byId("applyFilters").addEventListener("click", async () => {
+  }, { kind: "ui" }));
+  byId("applyFilters").addEventListener("click", protect("controls.apply_filters", async () => {
     syncFilterStateFromInputs();
     state.offset = 0;
     await loadEntries();
-  });
-  byId("clearFilters").addEventListener("click", async () => {
+  }, { kind: "ui" }));
+  byId("clearFilters").addEventListener("click", protect("controls.clear_filters", async () => {
     clearFilterInputs();
     state.offset = 0;
     await loadEntries();
-  });
-  byId("prevPage").addEventListener("click", async () => {
+  }, { kind: "ui" }));
+  byId("prevPage").addEventListener("click", protect("controls.prev_page", async () => {
     state.offset = Math.max(0, state.offset - state.pageSize);
     await loadEntries();
-  });
-  byId("nextPage").addEventListener("click", async () => {
+  }, { kind: "ui" }));
+  byId("nextPage").addEventListener("click", protect("controls.next_page", async () => {
     if (state.offset + state.pageSize < state.total) {
       state.offset += state.pageSize;
       await loadEntries();
     }
-  });
-  byId("loadPrimary").addEventListener("click", () => loadViewer("primary"));
-  byId("loadSecondary").addEventListener("click", () => loadViewer("secondary"));
-  byId("secondaryDataset").addEventListener("change", syncSecondaryViewer);
-  byId("secondaryLevel").addEventListener("change", syncSecondaryViewer);
-  byId("secondaryIndex").addEventListener("change", syncSecondaryViewer);
+  }, { kind: "ui" }));
+  byId("loadPrimary").addEventListener("click", protect("viewer.load_primary", () => loadViewer("primary"), { kind: "ui" }));
+  byId("loadSecondary").addEventListener("click", protect("viewer.load_secondary", () => loadViewer("secondary"), { kind: "ui" }));
+  byId("secondaryDataset").addEventListener("change", protect("controls.secondary_dataset", syncSecondaryContext, { kind: "ui" }));
+  byId("secondaryLevel").addEventListener("change", protect("controls.secondary_level", syncSecondaryContext, { kind: "ui" }));
+  byId("secondaryIndex").addEventListener("change", protect("controls.secondary_index", syncSecondaryViewer, { kind: "ui" }));
 }
 
-boot().catch((err) => {
-  console.error(err);
-  document.body.innerHTML = `<pre>${err.message}</pre>`;
-});
+protect("boot", boot, { kind: "ui" })();
