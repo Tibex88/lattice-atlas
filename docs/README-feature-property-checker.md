@@ -16,11 +16,14 @@ This turns the site from a viewer into an actual inspection tool.
 
 ## UI Shape
 - A result panel under each structure view
-- Rows showing property name plus pass/fail status
-- Optional recompute button or auto-refresh on structure change
+- Grouped cards for `property` and `algebra` results
+- Auto-refresh whenever the loaded structure changes
 
 ## Data Needed
 - Property functions from the codebase or new implementations
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [0bc338a](https://github.com/Tibex88/lattice-atlas/commit/0bc338a) Add inspection, query, and export research tools

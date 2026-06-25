@@ -18,12 +18,15 @@ A research-facing browser needs targeted discovery, not only pagination.
 - Saveable query state in URL
 
 ## UI Shape
-- A structured search form with grouped criteria
-- A paginated results table or card list
-- A shareable URL that preserves the current query
+- A structured sidebar form with width/height sliders, optional count range, and property checkboxes
+- A paginated result list with direct load actions for primary and secondary panes
+- A shareable URL plus visible constraint summary that preserve the current query
 
 ## Data Needed
 - Indexed metadata for structures
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [0bc338a](https://github.com/Tibex88/lattice-atlas/commit/0bc338a) Add inspection, query, and export research tools

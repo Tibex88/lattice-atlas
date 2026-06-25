@@ -2,6 +2,12 @@
 
 This file explains the first implementation slice recommended for the site.
 
+## Status
+The original first-slice items below are completed in the current milestone.
+
+## Related Follow-On Work
+- [0bc338a](https://github.com/Tibex88/lattice-atlas/commit/0bc338a) adds the next research tools beyond the first slice: property checker, derived operations, co-occurrence matrix, constraint URL state, and export controls.
+
 ## 1. Property Filters and Badges
 Highest value because the paper is strongly organized around structural and algebraic properties. This unlocks meaningful browsing immediately.
 
