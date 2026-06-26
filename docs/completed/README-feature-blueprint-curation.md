@@ -26,4 +26,7 @@ Shape-first design needs a stable place to collect and compare promising structu
 - References to dataset, `n`, and entry index
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [444b492](https://github.com/Tibex88/lattice-atlas/commit/444b492) Add saved blueprint curation UI
