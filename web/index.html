@@ -91,6 +91,15 @@
           </div>
           <div id="entryList" class="entry-list"></div>
         </div>
+
+        <div id="blueprintsPanel" class="panel loading-region">
+          <div class="panel-title">
+            <h2>Saved Blueprints</h2>
+            <button class="info-button" type="button" data-info-title="Saved Blueprints" data-info-body="Save candidate structures you may want to reuse later as game-logic blueprints. Each saved item keeps its dataset, size, index, dimensions, encoding, tags, and notes in local SQLite storage.">i</button>
+          </div>
+          <div id="storageMeta" class="meta">Local storage inactive.</div>
+          <div id="blueprintList" class="entry-list"></div>
+        </div>
       </section>
 
       <section class="workspace">
@@ -175,6 +184,7 @@
                 <input id="primaryIndex" type="number" min="0" step="1">
               </label>
               <button id="loadPrimary">Load</button>
+              <button id="savePrimaryBlueprint" class="ghost-button" type="button">Save</button>
               <button id="exportPrimaryJson" class="ghost-button" type="button">Export</button>
             </div>
             <div id="primaryView" class="viewer-body"></div>
@@ -197,6 +207,7 @@
                 <input id="secondaryIndex" type="number" min="0" step="1">
               </label>
               <button id="loadSecondary">Load</button>
+              <button id="saveSecondaryBlueprint" class="ghost-button" type="button">Save</button>
               <button id="exportSecondaryJson" class="ghost-button" type="button">Export</button>
             </div>
             <div id="secondaryView" class="viewer-body"></div>
@@ -230,6 +241,27 @@
         <p class="meta">Counts by dataset family and size. For <code>extlat</code>, max expansions is the largest number of residuated-lattice expansions for a single base lattice.</p>
         <div id="summary" class="summary-popup loading-region"></div>
       </div>
+    </dialog>
+    <dialog id="blueprintDialog" class="info-dialog">
+      <form id="blueprintForm" class="info-dialog-card blueprint-dialog-card" method="dialog">
+        <div class="info-dialog-head">
+          <h3>Save Blueprint</h3>
+          <button id="closeBlueprintDialog" class="ghost-button" type="button">Close</button>
+        </div>
+        <div id="blueprintDialogMeta" class="meta"></div>
+        <label>Title
+          <input id="blueprintTitle" type="text" maxlength="120" placeholder="Short label for this shape">
+        </label>
+        <label>Tags
+          <input id="blueprintTags" type="text" maxlength="240" placeholder="movement, combat, support">
+        </label>
+        <label>Notes
+          <textarea id="blueprintNotes" rows="5" placeholder="Why this shape is useful, what you noticed, or what it may map to."></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button id="submitBlueprint" type="submit">Save Blueprint</button>
+        </div>
+      </form>
     </dialog>
     <script src="/app.js"></script>
   </body>

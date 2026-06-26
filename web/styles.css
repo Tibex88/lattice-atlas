@@ -230,6 +230,7 @@ label {
 
 select,
 input,
+textarea,
 button {
   width: 100%;
   margin-top: 6px;
@@ -245,6 +246,12 @@ button {
   color: white;
   cursor: pointer;
   border: none;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 110px;
+  font: inherit;
 }
 
 button:hover {
@@ -454,7 +461,8 @@ button:hover {
 }
 
 .summary-row,
-.entry-row {
+.entry-row,
+.blueprint-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
@@ -473,6 +481,51 @@ button:hover {
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.blueprint-actions {
+  align-items: flex-start;
+}
+
+.blueprint-main {
+  display: grid;
+  gap: 6px;
+}
+
+.blueprint-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.saved-mark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tag-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #efe6d7;
+  color: var(--ink);
+  font-size: 11px;
 }
 
 .analysis-shell {
@@ -640,7 +693,7 @@ button:hover {
 
 .viewer-controls-primary,
 .viewer-controls-secondary {
-  grid-template-columns: 1fr 120px 100px 100px 100px;
+  grid-template-columns: 1fr 120px 100px 100px 100px 100px;
 }
 
 .viewer-title h3,
@@ -846,6 +899,16 @@ code {
 
 .summary-dialog-card {
   width: min(760px, calc(100vw - 32px));
+}
+
+.blueprint-dialog-card {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 
 .summary-popup {
