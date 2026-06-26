@@ -24,4 +24,4 @@ The paper repeatedly highlights least examples of rare combinations.
 - Property evaluations across all sizes
 
 ## Status
-Not implemented.
+Completed for the current milestone.

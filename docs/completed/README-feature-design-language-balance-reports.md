@@ -28,4 +28,4 @@ The math is already visible, but the workbench still needs to explain what those
 - Derived heuristics for design-facing labels
 
 ## Status
-Not implemented.
+Completed for the current milestone.

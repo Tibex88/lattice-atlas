@@ -12,12 +12,13 @@ Search for blueprints using structure-level criteria instead of manual browsing 
 The current filters help inspect structures, but a shape-first workflow needs a stronger way to ask for the kind of blueprint the designer wants.
 
 ## Suggested UI
-- Search form
+- Search mode inside the shared controls area
 - Ranked result list
 - Quick actions to save or compare returned blueprints
 
 ## UI Shape
-- A dedicated search panel for blueprint criteria
+- A mode switch that turns the main controls area from browse mode into blueprint-search mode
+- Shared dataset/size/filter controls so browse and search stay in one workflow
 - Ranked cards with key metrics and property badges
 - Short explanatory snippets for why each result matched
 

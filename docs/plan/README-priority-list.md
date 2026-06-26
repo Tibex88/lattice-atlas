@@ -18,6 +18,11 @@ The original first slice is completed, and the dashboard now also includes a sec
 - Constraint-driven browsing and shareable query state
 - Export controls
 - Blueprint curation with local SQLite-backed saved blueprints
+- Blueprint search with unified browse/search controls and match explanations
+- Smallest-example finder
+- Shortlist compare
+- Counter-gap analysis
+- Design-language balance reports
 
 ## Implemented In
 - [0bc338a](https://github.com/Tibex88/lattice-atlas/commit/0bc338a) adds property checker, derived operations, co-occurrence matrix, constraint URL state, and export controls.
@@ -25,23 +30,8 @@ The original first slice is completed, and the dashboard now also includes a sec
 
 ## Remaining Priorities
 
-## 1. Blueprint Search
-Highest priority because the workbench still needs a direct way to ask for shapes by dimensions, algebraic properties, and expansion behavior instead of relying on paging and manual filter iteration.
-
-## 2. Why-Qualified View
-Next because search results need a short explanation of why each shape matched, or else the workflow becomes accurate but opaque.
-
-## 3. Smallest-Example Finder
-High priority because it gives canonical examples fast and supports a more disciplined “find the minimal witness” workflow when exploring constraints.
-
-## 4. Shortlist Compare
-Comes next because saved blueprints are already in place, but they still need a more deliberate compare mode to make curation decisions efficient.
-
-## 5. Counter-Gap Analysis
-After search and comparison, this becomes valuable because it starts turning chosen shapes into structural design guidance by identifying missing or weak regions.
-
-## 6. Design-Language Balance Reports
-This stays after counter-gap analysis because it is a more synthesized, design-facing summary built on top of strong search, inspection, and comparison workflows.
+## 1. Why-Qualified View
+Next because search results need a stronger, more explicit explanation layer, not just a compact match snippet, or else the workflow remains accurate but somewhat opaque.
 
 ## Why This Is Not Exhaustive
 This is a priority order, not a full specification. It intentionally leaves out lower-priority workflow extras such as constraint presets, broader session/report tooling, behavior-to-node mapping, and catalog import/export.
