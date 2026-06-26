@@ -35,6 +35,12 @@ from dashboard.datasets import (
 )
 from dashboard.errors import ERRORS, LOGGER, RequestError
 from dashboard.storage import STORE
+from dashboard.workbench import (
+    counter_gap_analysis,
+    design_language_report,
+    parse_smallest_example,
+    smallest_example,
+)
 
 
 def query_param_map(request):
@@ -208,6 +214,32 @@ async def blueprint_search_endpoint(request: Request):
     filters = parse_blueprint_search(params)
     filters["dataset"] = parse_dataset(params)
     return blueprint_search(filters)
+
+
+@app.get("/api/smallest-example")
+async def smallest_example_endpoint(request: Request):
+    params = query_param_map(request)
+    filters = parse_smallest_example(params)
+    filters["dataset"] = parse_dataset(params)
+    return smallest_example(filters)
+
+
+@app.get("/api/design-report")
+async def design_report_endpoint(request: Request):
+    params = query_param_map(request)
+    dataset = parse_dataset(params)
+    n = parse_int(params, "n")
+    index = parse_int(params, "index")
+    return design_language_report(dataset, n, index)
+
+
+@app.get("/api/counter-gap")
+async def counter_gap_endpoint(request: Request):
+    params = query_param_map(request)
+    dataset = parse_dataset(params)
+    n = parse_int(params, "n")
+    index = parse_int(params, "index")
+    return counter_gap_analysis(dataset, n, index)
 
 
 @app.get("/api/storage")

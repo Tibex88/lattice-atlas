@@ -15,7 +15,7 @@
     await R.initializeBlueprintSearch();
     await R.fetchPropertyFilters();
     await R.loadFilterBounds();
-    await Promise.all([R.loadEntries(), R.loadAnalysis(), R.loadSavedBlueprints()]);
+    await Promise.all([R.loadResultsByMode(), R.loadAnalysis(), R.loadSavedBlueprints()]);
     byId("primaryIndex").value = restored.primaryIndex;
     byId("secondaryIndex").value = restored.secondaryIndex;
     await R.loadViewer("primary");
@@ -26,6 +26,8 @@
     R.wireSummaryDialog();
     R.wireBlueprintDialog();
     R.wireBlueprintSearch();
+    await R.initializeWorkbench();
+    R.wireWorkbench();
 
     byId("copyQueryLink").addEventListener("click", async () => {
       R.syncUrlState();
@@ -66,6 +68,13 @@
 
     byId("dataset").addEventListener("change", R.protect("controls.primary_dataset", async (e) => {
       state.dataset = e.target.value;
+      R.renderSearchSelectors();
+      if (state.mode === "search") {
+        byId("primaryIndex").value = 0;
+        await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
+        R.syncUrlState();
+        return;
+      }
       R.clearFilterInputs();
       await R.fetchPropertyFilters();
       await R.syncPrimaryContext();
@@ -74,29 +83,48 @@
 
     byId("level").addEventListener("change", R.protect("controls.primary_level", async (e) => {
       state.level = Number(e.target.value);
+      R.renderSearchSelectors();
+      if (state.mode === "search") {
+        byId("primaryIndex").value = 0;
+        await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
+        R.syncUrlState();
+        return;
+      }
       await R.syncPrimaryContext();
       R.syncUrlState();
     }, { kind: "ui" }));
 
     byId("pageSize").addEventListener("change", R.protect("controls.page_size", async (e) => {
-      state.pageSize = Number(e.target.value);
+      if (state.mode === "search") {
+        state.search.limit = Number(e.target.value);
+      } else {
+        state.pageSize = Number(e.target.value);
+      }
       state.offset = 0;
-      await R.loadEntries();
+      await R.loadResultsByMode();
       R.syncUrlState();
     }, { kind: "ui" }));
 
     byId("applyFilters").addEventListener("click", R.protect("controls.apply_filters", async () => {
+      if (state.mode === "search") {
+        R.syncSearchStateFromInputs();
+      }
       R.syncFilterStateFromInputs();
       R.renderConstraintSummary();
       state.offset = 0;
-      await R.loadEntries();
+      await R.loadResultsByMode();
       R.syncUrlState();
     }, { kind: "ui" }));
 
     byId("clearFilters").addEventListener("click", R.protect("controls.clear_filters", async () => {
+      if (state.mode === "search") {
+        R.resetBlueprintSearchForm();
+        await R.loadFilterBounds();
+        await R.fetchPropertyFilters();
+      }
       R.clearFilterInputs();
       state.offset = 0;
-      await R.loadEntries();
+      await R.loadResultsByMode();
       R.syncUrlState();
     }, { kind: "ui" }));
 
