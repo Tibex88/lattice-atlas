@@ -14,3 +14,4 @@ src/*
 
 # Keep the moved nested repo metadata out of the outer repo.
 src/.git.bak/
+.venv
