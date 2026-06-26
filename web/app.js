@@ -8,8 +8,12 @@ const state = {
   summaryRows: [],
   appendixData: null,
   cooccurrenceData: null,
+  currentEntries: [],
   primaryEntry: null,
   secondaryEntry: null,
+  savedBlueprints: [],
+  storageStatus: null,
+  pendingBlueprintTarget: null,
   filterBounds: null,
   propertyOptions: [],
   filters: {
@@ -252,6 +256,7 @@ const LoadingHub = (() => {
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
         secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
         family: { element: byId("familyShell"), disable: "button, input, select" },
+        blueprints: { element: byId("blueprintsPanel"), disable: "button, input, select, textarea" },
       };
       const config = configs[name];
       if (!config?.element) {
@@ -355,7 +360,7 @@ async function loadSummary() {
   });
 }
 
-async function fetchJson(url) {
+async function fetchJson(url, options = {}) {
   const candidates = [url];
   if (window.location.port !== "8000") {
     candidates.push(`${window.location.protocol}//${window.location.hostname || "127.0.0.1"}:8000${url}`);
@@ -364,7 +369,17 @@ async function fetchJson(url) {
   for (const candidate of candidates) {
     const started = performance.now();
     try {
-      const res = await fetch(candidate);
+      const requestOptions = {
+        method: options.method || "GET",
+        headers: { ...(options.headers || {}) },
+      };
+      if (options.body != null) {
+        requestOptions.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+        if (!requestOptions.headers["Content-Type"]) {
+          requestOptions.headers["Content-Type"] = "application/json";
+        }
+      }
+      const res = await fetch(candidate, requestOptions);
       const payload = await res.json().catch(() => null);
       if (!res.ok) {
         throw new AppError(
@@ -382,6 +397,7 @@ async function fetchJson(url) {
       }
       logger.info("api.request", {
         url: candidate,
+        method: requestOptions.method,
         status: res.status,
         durationMs: Math.round(performance.now() - started),
       });
@@ -396,6 +412,7 @@ async function fetchJson(url) {
         });
       logger.warn("api.request_failed", {
         url: candidate,
+        method: options.method || "GET",
         status: lastError.status,
         requestId: lastError.requestId,
         message: lastError.message,
@@ -478,6 +495,34 @@ function renderSummary(rows) {
     const max = row.max_count ? `, max expansions ${row.max_count.toLocaleString()}` : "";
     return `<div class="summary-row"><span>${row.dataset}${row.n}</span><span>${row.entries.toLocaleString()} entries${max}</span></div>`;
   }).join("");
+}
+
+function blueprintKey(item) {
+  return `${item.dataset}:${item.n}:${item.index}`;
+}
+
+function savedBlueprintMap() {
+  return new Map(state.savedBlueprints.map((item) => [blueprintKey(item), item]));
+}
+
+function tagsFromInput(value) {
+  return distinct(
+    String(value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+  );
+}
+
+function formatUtcStamp(value) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString();
 }
 
 function currentFilterQuery() {
@@ -1153,31 +1198,106 @@ function exportViewerEntry(target) {
   downloadJson(`${target}-${entry.dataset}${entry.n}-${entry.index}.json`, entry);
 }
 
+function renderStorageMeta() {
+  const node = byId("storageMeta");
+  if (!state.storageStatus) {
+    node.textContent = "Local storage inactive.";
+    return;
+  }
+  node.textContent = `${state.storageStatus.blueprints} blueprints saved in ${state.storageStatus.path}`;
+}
+
+function renderSavedBlueprints() {
+  renderStorageMeta();
+  const list = byId("blueprintList");
+  if (!state.savedBlueprints.length) {
+    list.innerHTML = `<div class="empty">No saved blueprints yet.</div>`;
+    return;
+  }
+  list.innerHTML = state.savedBlueprints.map((item) => `
+    <div class="blueprint-row">
+      <div class="blueprint-main">
+        <div class="blueprint-head">
+          <strong>${escapeHtml(item.title || `${item.dataset}${item.n} #${item.index}`)}</strong>
+          <span class="pill">${item.dataset}${item.n}</span>
+        </div>
+        <div class="meta">index ${item.index} • w=${item.width} • h=${item.height}${item.count != null ? ` • count ${item.count}` : ""}</div>
+        ${item.tags.length ? `<div class="tag-row">${item.tags.map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+        ${item.notes ? `<div class="meta">${escapeHtml(item.notes)}</div>` : ""}
+        <div class="meta">updated ${escapeHtml(formatUtcStamp(item.updated_at))}</div>
+      </div>
+      <div class="entry-actions blueprint-actions">
+        <button class="pick-blueprint-primary" data-id="${item.id}" type="button">Primary</button>
+        <button class="pick-blueprint-secondary" data-id="${item.id}" type="button">Secondary</button>
+        <button class="ghost-button delete-blueprint" data-id="${item.id}" type="button">Delete</button>
+      </div>
+    </div>
+  `).join("");
+  list.querySelectorAll(".pick-blueprint-primary").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
+      if (!item) {
+        return;
+      }
+      state.dataset = item.dataset;
+      state.level = item.n;
+      byId("dataset").value = item.dataset;
+      byId("level").value = item.n;
+      byId("primaryIndex").value = item.index;
+      await fetchPropertyFilters();
+      await syncPrimaryContext({ resetIndex: false });
+    });
+  });
+  list.querySelectorAll(".pick-blueprint-secondary").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
+      if (!item) {
+        return;
+      }
+      byId("secondaryDataset").value = item.dataset;
+      byId("secondaryLevel").value = item.n;
+      byId("secondaryIndex").value = item.index;
+      await loadViewer("secondary");
+    });
+  });
+  list.querySelectorAll(".delete-blueprint").forEach((button) => {
+    button.addEventListener("click", protect("blueprints.delete", async () => {
+      await deleteBlueprint(Number(button.dataset.id));
+    }, { kind: "ui" }));
+  });
+}
+
 function renderEntryList(payload) {
+  state.currentEntries = payload.items;
   state.total = payload.total;
   const list = byId("entryList");
+  const savedMap = savedBlueprintMap();
   if (!payload.items.length) {
     list.innerHTML = `<div class="empty">No entries.</div>`;
+    byId("pageMeta").textContent = state.total ? `${state.offset}-${Math.max(state.offset - 1, 0)} of ${state.total}` : `0 of 0`;
     return;
   }
   list.innerHTML = payload.items.map((item) => {
     const extra = item.count != null ? `count ${item.count}` : "";
+    const key = blueprintKey({ dataset: state.dataset, n: state.level, index: item.index });
+    const saved = savedMap.get(key);
     return `
       <div class="entry-row">
         <div>
-          <div><strong>#${item.index}</strong> ${extra}</div>
+          <div><strong>#${item.index}</strong> ${extra} ${saved ? '<span class="saved-mark">Saved</span>' : ""}</div>
           <div class="meta">w=${item.width}, h=${item.height}</div>
           <div class="meta"><code>${item.encoding.slice(0, 24)}${item.encoding.length > 24 ? "..." : ""}</code></div>
         </div>
         <div class="entry-actions">
           <button data-index="${item.index}" class="pick-primary">Primary</button>
           <button data-index="${item.index}" class="pick-secondary">Secondary</button>
+          <button data-index="${item.index}" class="ghost-button save-entry-blueprint" type="button">Save</button>
         </div>
       </div>
     `;
   }).join("");
   const pageEnd = Math.min(state.offset + state.pageSize, state.total);
-  byId("pageMeta").textContent = `${state.offset}-${pageEnd - 1} of ${state.total}`;
+  byId("pageMeta").textContent = `${state.offset}-${Math.max(pageEnd - 1, state.offset)} of ${state.total}`;
   list.querySelectorAll(".pick-primary").forEach((button) => {
     button.addEventListener("click", () => {
       byId("primaryIndex").value = button.dataset.index;
@@ -1191,6 +1311,13 @@ function renderEntryList(payload) {
       byId("secondaryIndex").value = button.dataset.index;
       loadViewer("secondary");
     });
+  });
+  list.querySelectorAll(".save-entry-blueprint").forEach((button) => {
+    button.addEventListener("click", protect("blueprints.open_from_list", async () => {
+      const index = Number(button.dataset.index);
+      const entry = await fetchJson(`/api/entry?dataset=${state.dataset}&n=${state.level}&index=${index}`);
+      openBlueprintDialog(entry);
+    }, { kind: "ui" }));
   });
 }
 
@@ -1468,6 +1595,20 @@ function wireSummaryDialog() {
   });
 }
 
+function wireBlueprintDialog() {
+  const dialog = byId("blueprintDialog");
+  byId("closeBlueprintDialog").addEventListener("click", closeBlueprintDialog);
+  byId("blueprintForm").addEventListener("submit", protect("blueprints.save", async (event) => {
+    event.preventDefault();
+    await savePendingBlueprint();
+  }, { kind: "ui" }));
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) {
+      closeBlueprintDialog();
+    }
+  });
+}
+
 async function loadAnalysis() {
   return Promise.all([
     loading.run("analysis", "Loading analysis...", async () => {
@@ -1497,6 +1638,69 @@ async function loadEntries() {
     const query = currentFilterQuery();
     const payload = await fetchJson(`/api/items?dataset=${state.dataset}&n=${state.level}&limit=${state.pageSize}&offset=${state.offset}${query ? `&${query}` : ""}`);
     renderEntryList(payload);
+  });
+}
+
+async function loadStorageStatus() {
+  return loading.run("blueprints", "Loading storage status...", async () => {
+    state.storageStatus = await fetchJson("/api/storage");
+    renderStorageMeta();
+  });
+}
+
+async function loadSavedBlueprints() {
+  return loading.run("blueprints", "Loading saved blueprints...", async () => {
+    const payload = await fetchJson("/api/blueprints");
+    state.savedBlueprints = payload.items || [];
+    renderSavedBlueprints();
+    if (state.currentEntries.length || state.total === 0) {
+      renderEntryList({ items: state.currentEntries, total: state.total });
+    }
+  });
+}
+
+function openBlueprintDialog(entry) {
+  state.pendingBlueprintTarget = entry;
+  byId("blueprintDialogMeta").textContent = `${entry.dataset}${entry.n} • index ${entry.index} • width ${entry.width} • height ${entry.height}${entry.count != null ? ` • count ${entry.count}` : ""}`;
+  const existing = savedBlueprintMap().get(blueprintKey(entry));
+  byId("blueprintTitle").value = existing?.title || "";
+  byId("blueprintTags").value = existing?.tags?.join(", ") || "";
+  byId("blueprintNotes").value = existing?.notes || "";
+  byId("blueprintDialog").showModal();
+}
+
+function closeBlueprintDialog() {
+  byId("blueprintDialog").close();
+  state.pendingBlueprintTarget = null;
+}
+
+async function savePendingBlueprint() {
+  const entry = state.pendingBlueprintTarget;
+  if (!entry) {
+    throw new AppError("No blueprint is selected for saving.", { kind: "ui" });
+  }
+  const payload = {
+    dataset: entry.dataset,
+    n: entry.n,
+    index: entry.index,
+    title: byId("blueprintTitle").value.trim(),
+    tags: tagsFromInput(byId("blueprintTags").value),
+    notes: byId("blueprintNotes").value.trim(),
+  };
+  await loading.run("blueprints", "Saving blueprint...", async () => {
+    await fetchJson("/api/blueprints", {
+      method: "POST",
+      body: payload,
+    });
+    await Promise.all([loadStorageStatus(), loadSavedBlueprints()]);
+  });
+  closeBlueprintDialog();
+}
+
+async function deleteBlueprint(id) {
+  await loading.run("blueprints", "Deleting blueprint...", async () => {
+    await fetchJson(`/api/blueprints?id=${id}`, { method: "DELETE" });
+    await Promise.all([loadStorageStatus(), loadSavedBlueprints()]);
   });
 }
 
@@ -1573,10 +1777,10 @@ async function boot() {
   byId("secondaryDataset").innerHTML = optionMarkup(datasets, restored.secondaryDataset);
   byId("level").innerHTML = optionMarkup(levels, state.level);
   byId("secondaryLevel").innerHTML = optionMarkup(levels, restored.secondaryLevel);
-  await loadSummary();
+  await Promise.all([loadSummary(), loadStorageStatus()]);
   await fetchPropertyFilters();
   await loadFilterBounds();
-  await Promise.all([loadEntries(), loadAnalysis()]);
+  await Promise.all([loadEntries(), loadAnalysis(), loadSavedBlueprints()]);
   byId("primaryIndex").value = restored.primaryIndex;
   byId("secondaryIndex").value = restored.secondaryIndex;
   await loadViewer("primary");
@@ -1585,6 +1789,7 @@ async function boot() {
   wireDoubleSlider("Height");
   wireInfoButtons();
   wireSummaryDialog();
+  wireBlueprintDialog();
   byId("copyQueryLink").addEventListener("click", async () => {
     syncUrlState();
     try {
@@ -1665,6 +1870,22 @@ async function boot() {
   }, { kind: "ui" }));
   byId("loadPrimary").addEventListener("click", protect("viewer.load_primary", () => loadViewer("primary"), { kind: "ui" }));
   byId("loadSecondary").addEventListener("click", protect("viewer.load_secondary", () => loadViewer("secondary"), { kind: "ui" }));
+  byId("savePrimaryBlueprint").addEventListener("click", protect("blueprints.open_primary", async () => {
+    if (!state.primaryEntry) {
+      await loadViewer("primary");
+    }
+    if (state.primaryEntry) {
+      openBlueprintDialog(state.primaryEntry);
+    }
+  }, { kind: "ui" }));
+  byId("saveSecondaryBlueprint").addEventListener("click", protect("blueprints.open_secondary", async () => {
+    if (!state.secondaryEntry) {
+      await loadViewer("secondary");
+    }
+    if (state.secondaryEntry) {
+      openBlueprintDialog(state.secondaryEntry);
+    }
+  }, { kind: "ui" }));
   byId("secondaryDataset").addEventListener("change", protect("controls.secondary_dataset", async () => {
     await syncSecondaryContext();
     syncUrlState();
