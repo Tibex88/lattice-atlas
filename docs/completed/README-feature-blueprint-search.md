@@ -26,4 +26,7 @@ The current filters help inspect structures, but a shape-first workflow needs a 
 - Search heuristics or ranking rules for blueprint quality
 
 ## Status
-Not implemented.
+Completed for the current milestone.
+
+## Implemented In
+- [7d76e45](https://github.com/Tibex88/lattice-atlas/commit/7d76e45) Add blueprint search workflow
