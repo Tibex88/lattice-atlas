@@ -4,13 +4,13 @@ artifacts/metadata-cache/
 artifacts/dashboard.sqlite3
 artifacts/dashboard.sqlite3-shm
 artifacts/dashboard.sqlite3-wal
+data/
 
 # Ignore the nested repo content by default.
-src/*
+src/
 
-# Keep the data folder in the outer repo.
-!src/data/
-!src/data/**
+# Keep the root archive in the outer repo.
+!data.tar.gz
 
 # Keep the moved nested repo metadata out of the outer repo.
 src/.git.bak/
