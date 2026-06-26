@@ -26,4 +26,4 @@ This is one of the most direct ways to turn the algebra into actionable content-
 - Derived heuristics for sparse capability regions
 
 ## Status
-Not implemented.
+Completed for the current milestone.
