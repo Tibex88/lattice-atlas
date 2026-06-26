@@ -3,9 +3,11 @@ import importlib
 import logging
 import os
 import pickle
+import sqlite3
 import sys
 import tempfile
 from bisect import bisect_left, bisect_right
+from datetime import datetime, timezone
 from functools import lru_cache
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -13,10 +15,13 @@ from time import perf_counter
 from urllib.parse import parse_qs, urlparse
 from uuid import uuid4
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 DATA = ROOT / "data"
-CACHE = ROOT / "artifacts" / "metadata-cache"
+ARTIFACTS = ROOT / "artifacts"
+CACHE = ARTIFACTS / "metadata-cache"
+SQLITE_DB = ARTIFACTS / "dashboard.sqlite3"
+WEB = ROOT / "web"
 CACHE_VERSION = 2
 
 sys.path.insert(0, str(SRC))
@@ -173,6 +178,8 @@ class ErrorHub:
             return DataError(str(error))
         if isinstance(error, (pickle.UnpicklingError, EOFError)):
             return DataError("dataset file is unreadable")
+        if isinstance(error, sqlite3.DatabaseError):
+            return RuntimeFault("sqlite storage failure", details={"type": type(error).__name__})
         if isinstance(error, KeyError):
             return RequestError(f"missing parameter: {error.args[0]}")
         if isinstance(error, ValueError):
@@ -203,6 +210,229 @@ LOGGER = AppLogger.get()
 ERRORS = ErrorHub.get()
 
 
+class SQLiteStore:
+    _instance = None
+
+    @classmethod
+    def get(cls):
+        if cls._instance is None:
+            cls._instance = cls(SQLITE_DB, LOGGER)
+        return cls._instance
+
+    def __init__(self, path, logger):
+        self.path = Path(path)
+        self.logger = logger
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._initialize()
+
+    def _connect(self):
+        conn = sqlite3.connect(self.path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
+    def _initialize(self):
+        with self._connect() as conn:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS saved_blueprints (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    dataset TEXT NOT NULL,
+                    n INTEGER NOT NULL,
+                    entry_index INTEGER NOT NULL,
+                    encoding TEXT NOT NULL,
+                    width INTEGER NOT NULL,
+                    height INTEGER NOT NULL,
+                    structure_count INTEGER,
+                    title TEXT NOT NULL DEFAULT '',
+                    notes TEXT NOT NULL DEFAULT '',
+                    tags_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(dataset, n, entry_index)
+                );
+
+                CREATE TABLE IF NOT EXISTS saved_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    notes TEXT NOT NULL DEFAULT '',
+                    state_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                """
+            )
+        self.logger.info("storage.ready", path=str(self.path))
+
+    def status(self):
+        with self._connect() as conn:
+            blueprint_count = conn.execute("SELECT COUNT(*) FROM saved_blueprints").fetchone()[0]
+            session_count = conn.execute("SELECT COUNT(*) FROM saved_sessions").fetchone()[0]
+        return {
+            "path": str(self.path),
+            "blueprints": blueprint_count,
+            "sessions": session_count,
+        }
+
+    def _serialize_blueprint_row(self, row):
+        return {
+            "id": row["id"],
+            "dataset": row["dataset"],
+            "n": row["n"],
+            "index": row["entry_index"],
+            "encoding": row["encoding"],
+            "width": row["width"],
+            "height": row["height"],
+            "count": row["structure_count"],
+            "title": row["title"],
+            "notes": row["notes"],
+            "tags": json.loads(row["tags_json"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def list_blueprints(self):
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM saved_blueprints
+                ORDER BY updated_at DESC, id DESC
+                """
+            ).fetchall()
+        return [self._serialize_blueprint_row(row) for row in rows]
+
+    def save_blueprint(self, dataset, n, index, title="", notes="", tags=None):
+        entry = decode_entry(dataset, n, index)
+        timestamp = utc_now()
+        tags = tags or []
+        if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+            raise RequestError("tags must be a list of strings")
+        payload = {
+            "dataset": dataset,
+            "n": n,
+            "entry_index": index,
+            "encoding": entry["encoding"],
+            "width": entry["width"],
+            "height": entry["height"],
+            "structure_count": entry["count"],
+            "title": title.strip(),
+            "notes": notes.strip(),
+            "tags_json": json.dumps(tags),
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        }
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO saved_blueprints (
+                    dataset, n, entry_index, encoding, width, height, structure_count,
+                    title, notes, tags_json, created_at, updated_at
+                ) VALUES (
+                    :dataset, :n, :entry_index, :encoding, :width, :height, :structure_count,
+                    :title, :notes, :tags_json, :created_at, :updated_at
+                )
+                ON CONFLICT(dataset, n, entry_index) DO UPDATE SET
+                    encoding=excluded.encoding,
+                    width=excluded.width,
+                    height=excluded.height,
+                    structure_count=excluded.structure_count,
+                    title=excluded.title,
+                    notes=excluded.notes,
+                    tags_json=excluded.tags_json,
+                    updated_at=excluded.updated_at
+                """,
+                payload,
+            )
+            row = conn.execute(
+                """
+                SELECT *
+                FROM saved_blueprints
+                WHERE dataset = ? AND n = ? AND entry_index = ?
+                """,
+                (dataset, n, index),
+            ).fetchone()
+        self.logger.info("storage.blueprint_saved", dataset=dataset, n=n, index=index)
+        return self._serialize_blueprint_row(row)
+
+    def delete_blueprint(self, blueprint_id):
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM saved_blueprints WHERE id = ?", (blueprint_id,)).fetchone()
+            if row is None:
+                raise NotFoundError(f"saved blueprint {blueprint_id} not found")
+            conn.execute("DELETE FROM saved_blueprints WHERE id = ?", (blueprint_id,))
+        self.logger.info("storage.blueprint_deleted", id=blueprint_id)
+        return {"id": blueprint_id}
+
+    def _serialize_session_row(self, row):
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "notes": row["notes"],
+            "state": json.loads(row["state_json"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def list_sessions(self):
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT *
+                FROM saved_sessions
+                ORDER BY updated_at DESC, id DESC
+                """
+            ).fetchall()
+        return [self._serialize_session_row(row) for row in rows]
+
+    def save_session(self, name, state, notes="", session_id=None):
+        if not isinstance(state, dict):
+            raise RequestError("state must be an object")
+        timestamp = utc_now()
+        clean_name = name.strip()
+        clean_notes = notes.strip()
+        encoded_state = json.dumps(state)
+        if session_id is None:
+            with self._connect() as conn:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO saved_sessions (name, notes, state_json, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (clean_name, clean_notes, encoded_state, timestamp, timestamp),
+                )
+                row = conn.execute("SELECT * FROM saved_sessions WHERE id = ?", (cursor.lastrowid,)).fetchone()
+        else:
+            with self._connect() as conn:
+                existing = conn.execute("SELECT id FROM saved_sessions WHERE id = ?", (session_id,)).fetchone()
+                if existing is None:
+                    raise NotFoundError(f"saved session {session_id} not found")
+                conn.execute(
+                    """
+                    UPDATE saved_sessions
+                    SET name = ?, notes = ?, state_json = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (clean_name, clean_notes, encoded_state, timestamp, session_id),
+                )
+                row = conn.execute("SELECT * FROM saved_sessions WHERE id = ?", (session_id,)).fetchone()
+        self.logger.info("storage.session_saved", id=row["id"], name=row["name"])
+        return self._serialize_session_row(row)
+
+    def delete_session(self, session_id):
+        with self._connect() as conn:
+            row = conn.execute("SELECT * FROM saved_sessions WHERE id = ?", (session_id,)).fetchone()
+            if row is None:
+                raise NotFoundError(f"saved session {session_id} not found")
+            conn.execute("DELETE FROM saved_sessions WHERE id = ?", (session_id,))
+        self.logger.info("storage.session_deleted", id=session_id)
+        return {"id": session_id}
+
+
+STORE = SQLiteStore.get()
+
+
 def parse_dataset(params, name="dataset", default="lat"):
     dataset = params.get(name, [default])[0]
     if dataset not in VALID_DATASETS:
@@ -220,6 +450,54 @@ def parse_int(params, name, *, default=None):
         return int(raw)
     except ValueError as exc:
         raise RequestError(f"invalid integer parameter: {name}={raw}") from exc
+
+
+def parse_dataset_value(dataset):
+    if dataset not in VALID_DATASETS:
+        raise RequestError(f"invalid dataset: {dataset}", details={"allowed": sorted(VALID_DATASETS)})
+    return dataset
+
+
+def require_json_string(payload, name):
+    value = payload.get(name)
+    if value in (None, ""):
+        raise RequestError(f"missing string field: {name}")
+    if not isinstance(value, str):
+        raise RequestError(f"invalid string field: {name}")
+    return value
+
+
+def optional_json_string(payload, name, default=""):
+    value = payload.get(name, default)
+    if value is None:
+        return default
+    if not isinstance(value, str):
+        raise RequestError(f"invalid string field: {name}")
+    return value
+
+
+def require_json_int(payload, name):
+    value = payload.get(name)
+    if value in (None, ""):
+        raise RequestError(f"missing integer field: {name}")
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise RequestError(f"invalid integer field: {name}={value}") from exc
+
+
+def optional_json_int(payload, name):
+    value = payload.get(name)
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise RequestError(f"invalid integer field: {name}={value}") from exc
+
+
+def utc_now():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 def hasse_edges(lattice):
@@ -906,6 +1184,9 @@ def reslat_family(n, index, limit=12):
 
 
 class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(WEB), **kwargs)
+
     def send_response(self, code, message=None):
         self._status_code = code
         super().send_response(code, message)
@@ -919,6 +1200,23 @@ class Handler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.end_headers()
+
+    def parse_json_body(self):
+        raw_length = self.headers.get("Content-Length")
+        if raw_length in (None, ""):
+            raise RequestError("missing request body")
+        try:
+            length = int(raw_length)
+        except ValueError as exc:
+            raise RequestError("invalid Content-Length header") from exc
+        body = self.rfile.read(length)
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RequestError("request body is not valid JSON") from exc
+        if not isinstance(payload, dict):
+            raise RequestError("request body must be a JSON object")
+        return payload
 
     def route_get(self, parsed):
         if parsed.path == "/api/summary":
@@ -979,18 +1277,68 @@ class Handler(SimpleHTTPRequestHandler):
             payload = decode_entry(dataset, n, index)
             self.send_json(payload)
             return
+        if parsed.path == "/api/storage":
+            self.send_json(STORE.status())
+            return
+        if parsed.path == "/api/blueprints":
+            self.send_json({"items": STORE.list_blueprints()})
+            return
+        if parsed.path == "/api/sessions":
+            self.send_json({"items": STORE.list_sessions()})
+            return
         if parsed.path == "/":
             self.path = "/index.html"
         super().do_GET()
 
-    def do_GET(self):
+    def route_post(self, parsed):
+        payload = self.parse_json_body()
+        if parsed.path == "/api/blueprints":
+            dataset = parse_dataset_value(require_json_string(payload, "dataset"))
+            n = require_json_int(payload, "n")
+            index = require_json_int(payload, "index")
+            title = optional_json_string(payload, "title")
+            notes = optional_json_string(payload, "notes")
+            tags = payload.get("tags", [])
+            self.send_json(
+                STORE.save_blueprint(dataset, n, index, title=title, notes=notes, tags=tags),
+                status=201,
+            )
+            return
+        if parsed.path == "/api/sessions":
+            session_id = optional_json_int(payload, "id")
+            name = require_json_string(payload, "name")
+            notes = optional_json_string(payload, "notes")
+            state = payload.get("state")
+            self.send_json(STORE.save_session(name, state, notes=notes, session_id=session_id), status=201)
+            return
+        raise NotFoundError(f"unsupported POST route: {parsed.path}")
+
+    def route_delete(self, parsed):
+        params = parse_qs(parsed.query)
+        if parsed.path == "/api/blueprints":
+            blueprint_id = parse_int(params, "id")
+            self.send_json(STORE.delete_blueprint(blueprint_id))
+            return
+        if parsed.path == "/api/sessions":
+            session_id = parse_int(params, "id")
+            self.send_json(STORE.delete_session(session_id))
+            return
+        raise NotFoundError(f"unsupported DELETE route: {parsed.path}")
+
+    def handle_api_request(self, method, route_fn):
         parsed = urlparse(self.path)
         request_id = uuid4().hex[:8]
         started = perf_counter()
         self._status_code = 200
-        LOGGER.info("request.started", request_id=request_id, method="GET", path=parsed.path, query=parsed.query or None)
+        LOGGER.info(
+            "request.started",
+            request_id=request_id,
+            method=method,
+            path=parsed.path,
+            query=parsed.query or None,
+        )
         try:
-            self.route_get(parsed)
+            route_fn(parsed)
         except Exception as exc:
             app_error = ERRORS.capture(exc, request_id=request_id, path=parsed.path, query=parsed.query)
             self.send_json(
@@ -1007,11 +1355,20 @@ class Handler(SimpleHTTPRequestHandler):
             LOGGER.info(
                 "request.completed",
                 request_id=request_id,
-                method="GET",
+                method=method,
                 path=parsed.path,
                 status=self._status_code,
                 duration_ms=round((perf_counter() - started) * 1000, 2),
             )
+
+    def do_GET(self):
+        self.handle_api_request("GET", self.route_get)
+
+    def do_POST(self):
+        self.handle_api_request("POST", self.route_post)
+
+    def do_DELETE(self):
+        self.handle_api_request("DELETE", self.route_delete)
 
     def send_json(self, payload, status=200):
         body = json.dumps(payload).encode("utf-8")
@@ -1030,7 +1387,7 @@ class AppServer(ThreadingHTTPServer):
     daemon_threads = True
 
 
-if __name__ == "__main__":
+def main():
     port = int(os.environ.get("PORT", "8000"))
     try:
         server = AppServer(("127.0.0.1", port), Handler)
@@ -1046,3 +1403,7 @@ if __name__ == "__main__":
     finally:
         server.server_close()
         LOGGER.info("server.stopped", host="127.0.0.1", port=port)
+
+
+if __name__ == "__main__":
+    main()
