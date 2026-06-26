@@ -190,6 +190,10 @@
                     <span class="checker-value">${item.value ? "true" : "false"}</span>
                   </div>
                   <div class="meta">${escapeHtml(item.description)}</div>
+                  <details class="checker-details">
+                    <summary>${item.value ? "Why qualified" : "Why not"}</summary>
+                    <div class="meta">${escapeHtml(item.why || "")}</div>
+                  </details>
                 </div>
               `).join("")}
             </div>

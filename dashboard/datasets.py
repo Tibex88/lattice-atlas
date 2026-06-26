@@ -203,9 +203,27 @@ def property_results(dataset, values):
             "kind": option["kind"],
             "description": option["description"],
             "value": bool(values.get(option["key"], False)),
+            "why": property_explanation(dataset, option["key"], option["label"], option["description"], values),
         }
         for option in property_options(dataset)
     ]
+
+
+def property_explanation(dataset, key, label, description, values):
+    value = bool(values.get(key, False))
+    if dataset == "reslat" and key in SPECIAL_ALGEBRAS:
+        label_to_key = {name: slug for slug, (name, _) in RESIDUATED_PROPERTIES.items()}
+        required = [name for name in SPECIAL_ALGEBRAS[key][1] if name in label_to_key]
+        satisfied = [name for name in required if values.get(label_to_key[name], False)]
+        missing = [name for name in required if not values.get(label_to_key[name], False)]
+        if value:
+            joined = ", ".join(satisfied) if satisfied else "its defining base laws"
+            return f"Qualifies as {label} because it satisfies {joined}."
+        joined = ", ".join(missing) if missing else "one or more defining base laws"
+        return f"Does not qualify as {label}; missing {joined}."
+    if value:
+        return f"Satisfies {label}. {description}"
+    return f"Fails {label}. {description}"
 
 
 def property_mask(dataset, structure):
@@ -273,6 +291,23 @@ def decode_entry(dataset, n, index):
         "height": structure.height(),
         "properties": values,
         "property_items": property_results(dataset, values),
+    }
+
+
+def qualification_report(dataset, n, index, keys=None):
+    entry = decode_entry(dataset, n, index)
+    selected = set(keys or [])
+    rows = entry["property_items"]
+    if selected:
+        rows = [item for item in rows if item["key"] in selected]
+    return {
+        "dataset": dataset,
+        "n": n,
+        "index": index,
+        "width": entry["width"],
+        "height": entry["height"],
+        "count": entry["count"],
+        "properties": rows,
     }
 
 

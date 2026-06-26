@@ -129,6 +129,61 @@
     return params.toString();
   }
 
+  function searchStructuralReasons(item) {
+    const reasons = [];
+    reasons.push(`Size ${item.n} lies within the requested n range ${state.search.nMin} to ${state.search.nMax}.`);
+    if (state.search.widthMin || state.search.widthMax) {
+      reasons.push(`Width ${item.width} satisfies the requested width bounds.`);
+    }
+    if (state.search.heightMin || state.search.heightMax) {
+      reasons.push(`Height ${item.height} satisfies the requested height bounds.`);
+    }
+    if (item.count != null && (state.search.countMin || state.search.countMax)) {
+      reasons.push(`Expansion count ${item.count} satisfies the requested count bounds.`);
+    }
+    reasons.push(item.explanation);
+    return reasons;
+  }
+
+  async function loadWhyQualified(shell, item) {
+    const body = shell.querySelector(".why-qualified-body");
+    if (!body || shell.dataset.loaded === "1") {
+      return;
+    }
+    body.innerHTML = `<div class="meta">Loading explanation...</div>`;
+    const params = new URLSearchParams({
+      dataset: item.dataset,
+      n: String(item.n),
+      index: String(item.index),
+    });
+    (item.matched_property_keys || []).forEach((key) => params.append("prop", key));
+    const payload = await fetchJson(`/api/why-qualified?${params.toString()}`);
+    const propertyRows = payload.properties?.length
+      ? payload.properties.map((prop) => `
+          <div class="why-qualified-item">
+            <strong>${escapeHtml(prop.label)}</strong>
+            <div class="meta">${escapeHtml(prop.why || prop.description || "")}</div>
+          </div>
+        `).join("")
+      : `<div class="meta">No property-specific qualifier was selected for this result.</div>`;
+    const structuralRows = searchStructuralReasons(item).map((reason) => `
+      <div class="why-qualified-item">
+        <div class="meta">${escapeHtml(reason)}</div>
+      </div>
+    `).join("");
+    body.innerHTML = `
+      <div class="why-qualified-section">
+        <div class="checker-group-title">Matched Properties</div>
+        <div class="why-qualified-list">${propertyRows}</div>
+      </div>
+      <div class="why-qualified-section">
+        <div class="checker-group-title">Structural Reasons</div>
+        <div class="why-qualified-list">${structuralRows}</div>
+      </div>
+    `;
+    shell.dataset.loaded = "1";
+  }
+
   function renderSearchResults(payload) {
     byId("entryListMeta").textContent = payload.total
       ? `${payload.total} matches across n=${payload.n_min} to n=${payload.n_max}. Showing top ${payload.items.length}.`
@@ -150,6 +205,10 @@
           ${item.matched_properties?.length ? `<div class="tag-row">${item.matched_properties.map((label) => `<span class="tag-chip">${escapeHtml(label)}</span>`).join("")}</div>` : ""}
           <div class="meta"><code>${item.encoding.slice(0, 24)}${item.encoding.length > 24 ? "..." : ""}</code></div>
           <div class="meta">${escapeHtml(item.explanation)}</div>
+          <details class="why-qualified-shell" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}">
+            <summary>Why qualified</summary>
+            <div class="why-qualified-body"></div>
+          </details>
         </div>
         <div class="entry-actions blueprint-actions">
           <button class="search-primary" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" type="button">Primary</button>
@@ -181,6 +240,14 @@
       button.addEventListener("click", R.protect("search.save_result", async () => {
         const entry = await fetchJson(`/api/entry?dataset=${button.dataset.dataset}&n=${button.dataset.n}&index=${button.dataset.index}`);
         R.openBlueprintDialog(entry);
+      }, { kind: "ui" }));
+    });
+    box.querySelectorAll(".why-qualified-shell").forEach((shell, index) => {
+      shell.addEventListener("toggle", R.protect("search.why_qualified", async () => {
+        if (!shell.open) {
+          return;
+        }
+        await loadWhyQualified(shell, payload.items[index]);
       }, { kind: "ui" }));
     });
   }

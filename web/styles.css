@@ -835,6 +835,38 @@ button:hover {
   text-transform: uppercase;
 }
 
+.checker-details,
+.why-qualified-shell {
+  margin-top: 8px;
+  border-top: 1px solid rgba(215, 204, 185, 0.7);
+  padding-top: 8px;
+}
+
+.checker-details summary,
+.why-qualified-shell summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.why-qualified-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.why-qualified-list {
+  display: grid;
+  gap: 8px;
+}
+
+.why-qualified-item {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fffdfa;
+}
+
 .family-summary {
   display: flex;
   align-items: baseline;

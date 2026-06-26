@@ -30,8 +30,7 @@ The original first slice is completed, and the dashboard now also includes a sec
 
 ## Remaining Priorities
 
-## 1. Why-Qualified View
-Next because search results need a stronger, more explicit explanation layer, not just a compact match snippet, or else the workflow remains accurate but somewhat opaque.
+No immediate planned priority is left in this list. The next additions now fall into broader workflow extras such as session/report tooling, behavior-to-node mapping, and catalog import/export.
 
 ## Why This Is Not Exhaustive
 This is a priority order, not a full specification. It intentionally leaves out lower-priority workflow extras such as constraint presets, broader session/report tooling, behavior-to-node mapping, and catalog import/export.

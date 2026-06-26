@@ -23,4 +23,4 @@ Plain true/false labels help browsing, but explanations help understanding.
 - Property-specific explanation logic
 
 ## Status
-Not implemented.
+Completed for the current milestone.

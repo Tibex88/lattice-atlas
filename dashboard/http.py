@@ -29,6 +29,7 @@ from dashboard.datasets import (
     parse_filters,
     parse_int,
     property_options,
+    qualification_report,
     query_items,
     require_json_int,
     require_json_string,
@@ -206,6 +207,16 @@ async def entry_endpoint(request: Request):
     n = parse_int(params, "n")
     index = parse_int(params, "index")
     return decode_entry(dataset, n, index)
+
+
+@app.get("/api/why-qualified")
+async def why_qualified_endpoint(request: Request):
+    params = query_param_map(request)
+    dataset = parse_dataset(params, default=None)
+    n = parse_int(params, "n")
+    index = parse_int(params, "index")
+    keys = tuple(params.get("prop", []))
+    return qualification_report(dataset, n, index, keys=keys)
 
 
 @app.get("/api/blueprint-search")

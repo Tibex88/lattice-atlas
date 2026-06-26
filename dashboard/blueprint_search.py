@@ -91,6 +91,7 @@ def blueprint_search(filters):
                     "count": count,
                     "width": width,
                     "height": height,
+                    "matched_property_keys": [key for key in filters["properties"] if key in label_map],
                     "matched_properties": [label_map[key] for key in filters["properties"] if key in label_map],
                     "explanation": _explanation(dataset, n, row, filters, label_map),
                     "_sort": (n,) + _ranking_key(dataset, row),
