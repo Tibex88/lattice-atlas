@@ -1,0 +1,8 @@
+__pycache__/
+
+# Ignore the nested repo content by default.
+src/*
+
+# Keep the data folder in the outer repo.
+!src/data/
+!src/data/**
