@@ -1,4 +1,9 @@
 __pycache__/
+.DS_Store
+artifacts/metadata-cache/
+artifacts/dashboard.sqlite3
+artifacts/dashboard.sqlite3-shm
+artifacts/dashboard.sqlite3-wal
 
 # Ignore the nested repo content by default.
 src/*
