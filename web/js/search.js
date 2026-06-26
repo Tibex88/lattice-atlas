@@ -16,7 +16,7 @@
   function ensureSearchDataset() {
     const datasets = availableDatasets();
     if (!datasets.includes(state.search.dataset)) {
-      state.search.dataset = datasets[0] || "lat";
+      state.search.dataset = datasets[0] || state.dataset || "lat";
     }
   }
 
@@ -28,17 +28,29 @@
       return;
     }
     if (!sizes.includes(Number(state.search.nMin))) {
-      state.search.nMin = sizes[0];
+      state.search.nMin = state.level && sizes.includes(state.level) ? state.level : sizes[0];
     }
     if (!sizes.includes(Number(state.search.nMax))) {
-      state.search.nMax = sizes[sizes.length - 1];
+      state.search.nMax = state.level && sizes.includes(state.level) ? state.level : sizes[sizes.length - 1];
     }
     if (Number(state.search.nMin) > Number(state.search.nMax)) {
       state.search.nMax = state.search.nMin;
     }
   }
 
+  function syncSearchStateFromInputs() {
+    state.search.dataset = byId("searchDataset").value;
+    state.search.nMin = Number(byId("searchNMin").value || 1);
+    state.search.nMax = Number(byId("searchNMax").value || state.search.nMin || 1);
+    if (state.mode === "search") {
+      state.search.limit = Number(byId("pageSize").value || 25);
+    }
+  }
+
   function renderSearchSelectors() {
+    state.search.dataset = state.mode === "browse" ? state.dataset : state.search.dataset;
+    state.search.nMin = state.mode === "browse" ? state.level : state.search.nMin;
+    state.search.nMax = state.mode === "browse" ? state.level : state.search.nMax;
     ensureSearchDataset();
     ensureSearchSizeBounds();
     const datasets = availableDatasets();
@@ -46,78 +58,56 @@
     byId("searchDataset").innerHTML = R.optionMarkup(datasets, state.search.dataset);
     byId("searchNMin").innerHTML = R.optionMarkup(sizes, state.search.nMin);
     byId("searchNMax").innerHTML = R.optionMarkup(sizes, state.search.nMax);
-    byId("searchLimit").value = String(state.search.limit);
-    byId("searchWidthMin").value = state.search.widthMin;
-    byId("searchWidthMax").value = state.search.widthMax;
-    byId("searchHeightMin").value = state.search.heightMin;
-    byId("searchHeightMax").value = state.search.heightMax;
-    byId("searchCountMin").value = state.search.countMin;
-    byId("searchCountMax").value = state.search.countMax;
-    byId("searchCountRow").style.display = state.search.dataset === "extlat" ? "grid" : "none";
+    if (byId("dataset")) {
+      byId("dataset").value = state.dataset;
+    }
+    if (byId("level")) {
+      byId("level").value = String(state.level);
+    }
+    byId("pageSize").value = String(state.mode === "search" ? state.search.limit : state.pageSize);
   }
 
-  function renderSearchPropertyFilters(payload) {
-    state.searchPropertyOptions = payload.properties;
-    byId("searchPropertyFilters").innerHTML = payload.properties.map((prop) => `
-      <label class="property-item">
-        <input class="search-property-check" type="checkbox" value="${prop.key}" ${state.search.properties.includes(prop.key) ? "checked" : ""}>
-        <span>${prop.label}</span>
-      </label>
-    `).join("");
-    const infoButton = byId("searchPropertiesInfo");
-    if (infoButton) {
-      const definitions = payload.properties.map((prop) => `
-        <div class="info-definition-item">
-          <div class="info-definition-head">
-            <strong>${escapeHtml(prop.label)}</strong>
-            <span class="info-definition-kind">${escapeHtml(prop.kind)}</span>
-          </div>
-          <div class="meta">${escapeHtml(prop.description || "")}</div>
-        </div>
-      `).join("");
-      infoButton.dataset.infoBodyHtml = `
-        <div class="meta">Each checked property is required in the search result.</div>
-        <div class="info-definition-list">${definitions}</div>
-      `;
+  function renderModeUI() {
+    const searchMode = state.mode === "search";
+    const scope = byId("searchScopeFields");
+    byId("browseMode").classList.toggle("is-active", !searchMode);
+    byId("searchMode").classList.toggle("is-active", searchMode);
+    scope.hidden = false;
+    scope.classList.toggle("browse-scope", !searchMode);
+    scope.classList.toggle("search-scope-mode", searchMode);
+    byId("searchDatasetRow").style.display = "";
+    byId("searchNMaxRow").style.display = searchMode ? "" : "none";
+    byId("searchNMinRow").style.display = "";
+    byId("searchNMinLabel").textContent = searchMode ? "n min" : "n";
+    byId("pageSizeRow").hidden = false;
+    byId("copyQueryLink").hidden = searchMode;
+    byId("entriesTitle").textContent = searchMode ? "Blueprint Results" : "Entries";
+    byId("entryListMeta").textContent = searchMode
+      ? "Search across sizes using the same live database-backed constraints."
+      : "Current browse slice.";
+    byId("applyFilters").textContent = searchMode ? "Run Search" : "Apply Filters";
+    byId("clearFilters").textContent = searchMode ? "Reset Search" : "Clear";
+    byId("exportListCsv").textContent = searchMode ? "Export Results CSV" : "Export List CSV";
+    byId("exportListJson").textContent = searchMode ? "Export Results JSON" : "Export List JSON";
+    const pager = document.querySelector(".pager");
+    if (pager) {
+      pager.hidden = searchMode;
     }
   }
 
-  async function loadSearchPropertyFilters() {
-    return loading.run("search", "Loading search properties...", async () => {
-      const payload = await fetchJson(`/api/filter-options?dataset=${state.search.dataset}`);
-      renderSearchPropertyFilters(payload);
-      return payload;
-    });
-  }
-
-  function syncSearchStateFromInputs() {
-    state.search.dataset = byId("searchDataset").value;
-    state.search.nMin = Number(byId("searchNMin").value || 1);
-    state.search.nMax = Number(byId("searchNMax").value || state.search.nMin || 1);
-    state.search.limit = Number(byId("searchLimit").value || 25);
-    state.search.widthMin = byId("searchWidthMin").value.trim();
-    state.search.widthMax = byId("searchWidthMax").value.trim();
-    state.search.heightMin = byId("searchHeightMin").value.trim();
-    state.search.heightMax = byId("searchHeightMax").value.trim();
-    state.search.countMin = byId("searchCountMin").value.trim();
-    state.search.countMax = byId("searchCountMax").value.trim();
-    state.search.properties = [...document.querySelectorAll(".search-property-check:checked")].map((input) => input.value);
-  }
-
   function resetBlueprintSearchForm() {
-    state.search = {
-      dataset: state.dataset,
-      nMin: state.level,
-      nMax: state.level,
-      limit: 25,
-      widthMin: "",
-      widthMax: "",
-      heightMin: "",
-      heightMax: "",
-      countMin: "",
-      countMax: "",
-      properties: [],
-    };
+    state.search.dataset = state.dataset;
+    state.search.nMin = state.level;
+    state.search.nMax = state.level;
+    state.search.limit = 25;
+    state.search.widthMin = "";
+    state.search.widthMax = "";
+    state.search.heightMin = "";
+    state.search.heightMax = "";
+    state.search.countMin = "";
+    state.search.countMax = "";
+    state.search.properties = [];
+    state.searchFilterBounds = null;
     renderSearchSelectors();
   }
 
@@ -140,10 +130,10 @@
   }
 
   function renderSearchResults(payload) {
-    byId("searchSummary").textContent = payload.total
+    byId("entryListMeta").textContent = payload.total
       ? `${payload.total} matches across n=${payload.n_min} to n=${payload.n_max}. Showing top ${payload.items.length}.`
       : `No matches for ${payload.dataset} across n=${payload.n_min} to n=${payload.n_max}.`;
-    const box = byId("searchResults");
+    const box = byId("entryList");
     if (!payload.items.length) {
       box.innerHTML = `<div class="empty">No candidate blueprints matched.</div>`;
       return;
@@ -169,23 +159,23 @@
       </div>
     `).join("");
     box.querySelectorAll(".search-primary").forEach((button) => {
-      button.addEventListener("click", async () => {
+      button.addEventListener("click", R.protect("search.primary", async () => {
         state.dataset = button.dataset.dataset;
         state.level = Number(button.dataset.n);
-        byId("dataset").value = state.dataset;
-        byId("level").value = String(state.level);
         byId("primaryIndex").value = button.dataset.index;
-        await R.fetchPropertyFilters();
-        await R.syncPrimaryContext({ resetIndex: false });
-      });
+        renderSearchSelectors();
+        await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
+        R.syncUrlState();
+      }, { kind: "ui" }));
     });
     box.querySelectorAll(".search-secondary").forEach((button) => {
-      button.addEventListener("click", async () => {
+      button.addEventListener("click", R.protect("search.secondary", async () => {
         byId("secondaryDataset").value = button.dataset.dataset;
         byId("secondaryLevel").value = button.dataset.n;
         byId("secondaryIndex").value = button.dataset.index;
         await R.loadViewer("secondary");
-      });
+        R.syncUrlState();
+      }, { kind: "ui" }));
     });
     box.querySelectorAll(".search-save").forEach((button) => {
       button.addEventListener("click", R.protect("search.save_result", async () => {
@@ -196,47 +186,105 @@
   }
 
   async function runBlueprintSearch() {
-    syncSearchStateFromInputs();
-    return loading.run("search", "Searching blueprints...", async () => {
+    return loading.run("entries", "Searching blueprints...", async () => {
       const payload = await fetchJson(`/api/blueprint-search?${searchQuery()}`);
       renderSearchResults(payload);
       return payload;
     });
   }
 
-  async function initializeBlueprintSearch() {
-    resetBlueprintSearchForm();
+  async function loadResultsByMode() {
+    if (state.mode === "search") {
+      return runBlueprintSearch();
+    }
+    return R.loadEntries();
+  }
+
+  async function setMode(mode, { syncResults = true } = {}) {
+    state.mode = mode === "search" ? "search" : "browse";
+    if (state.mode === "browse") {
+      state.search.dataset = state.dataset;
+      state.search.nMin = state.level;
+      state.search.nMax = state.level;
+    }
+    renderModeUI();
     renderSearchSelectors();
-    await loadSearchPropertyFilters();
-    renderSearchResults({ total: 0, n_min: state.search.nMin, n_max: state.search.nMax, items: [], dataset: state.search.dataset });
+    await Promise.all([R.fetchPropertyFilters(), R.loadFilterBounds()]);
+    R.renderConstraintSummary();
+    R.applyFilterInputsFromState();
+    if (syncResults) {
+      await loadResultsByMode();
+    }
+    R.syncUrlState();
+  }
+
+  async function initializeBlueprintSearch() {
+    if (!state.search.dataset) {
+      state.search.dataset = state.dataset;
+    }
+    if (!state.search.nMin) {
+      state.search.nMin = state.level;
+    }
+    if (!state.search.nMax) {
+      state.search.nMax = state.level;
+    }
+    renderSearchSelectors();
+    renderModeUI();
   }
 
   function wireBlueprintSearch() {
+    byId("browseMode").addEventListener("click", R.protect("search.mode_browse", async () => {
+      await setMode("browse");
+    }, { kind: "ui" }));
+    byId("searchMode").addEventListener("click", R.protect("search.mode_search", async () => {
+      await setMode("search");
+    }, { kind: "ui" }));
     byId("searchDataset").addEventListener("change", R.protect("search.dataset", async () => {
-      state.search.dataset = byId("searchDataset").value;
+      syncSearchStateFromInputs();
+      if (state.mode === "browse") {
+        state.dataset = state.search.dataset;
+        renderSearchSelectors();
+        R.clearFilterInputs();
+        await R.fetchPropertyFilters();
+        await R.syncPrimaryContext();
+        R.syncUrlState();
+        return;
+      }
       ensureSearchSizeBounds();
       renderSearchSelectors();
-      await loadSearchPropertyFilters();
+      await Promise.all([R.fetchPropertyFilters(), R.loadFilterBounds()]);
+      R.renderConstraintSummary();
+      R.syncUrlState();
     }, { kind: "ui" }));
-    byId("searchNMin").addEventListener("change", () => {
-      syncSearchStateFromInputs();
-      renderSearchSelectors();
+    ["searchNMin", "searchNMax"].forEach((id) => {
+      byId(id).addEventListener("change", R.protect(`search.scope.${id}`, async () => {
+        syncSearchStateFromInputs();
+        if (state.mode === "browse") {
+          state.dataset = state.search.dataset;
+          state.level = state.search.nMin;
+          state.search.nMax = state.search.nMin;
+          renderSearchSelectors();
+          await R.syncPrimaryContext();
+          R.syncUrlState();
+          return;
+        }
+        renderSearchSelectors();
+        await R.loadFilterBounds();
+        R.renderConstraintSummary();
+        R.syncUrlState();
+      }, { kind: "ui" }));
     });
-    byId("searchNMax").addEventListener("change", () => {
-      syncSearchStateFromInputs();
-      renderSearchSelectors();
-    });
-    byId("runBlueprintSearch").addEventListener("click", R.protect("search.run", runBlueprintSearch, { kind: "ui" }));
-    byId("resetBlueprintSearch").addEventListener("click", R.protect("search.reset", async () => {
-      resetBlueprintSearchForm();
-      renderSearchSelectors();
-      await loadSearchPropertyFilters();
-      renderSearchResults({ total: 0, n_min: state.search.nMin, n_max: state.search.nMax, items: [], dataset: state.search.dataset });
-    }, { kind: "ui" }));
   }
 
   Object.assign(R, {
     initializeBlueprintSearch,
     wireBlueprintSearch,
+    resetBlueprintSearchForm,
+    syncSearchStateFromInputs,
+    renderSearchSelectors,
+    renderSearchResults,
+    runBlueprintSearch,
+    loadResultsByMode,
+    setMode,
   });
 })();

@@ -4,12 +4,27 @@
 
   async function exportCurrentList(format) {
     return loading.run("entries", `Exporting list ${format.toUpperCase()}...`, async () => {
-      const query = R.currentFilterQuery();
-      const payload = await fetchJson(`/api/items?dataset=${state.dataset}&n=${state.level}&limit=${state.pageSize}&offset=${state.offset}${query ? `&${query}` : ""}`);
-      const filename = `entries-${state.dataset}${state.level}.${format}`;
+      const searchMode = state.mode === "search";
+      const payload = searchMode
+        ? await fetchJson(`/api/blueprint-search?${new URLSearchParams({
+          dataset: state.search.dataset,
+          n_min: String(state.search.nMin),
+          n_max: String(state.search.nMax),
+          limit: String(state.search.limit),
+          ...(state.search.widthMin ? { width_min: state.search.widthMin } : {}),
+          ...(state.search.widthMax ? { width_max: state.search.widthMax } : {}),
+          ...(state.search.heightMin ? { height_min: state.search.heightMin } : {}),
+          ...(state.search.heightMax ? { height_max: state.search.heightMax } : {}),
+          ...(state.search.dataset === "extlat" && state.search.countMin ? { count_min: state.search.countMin } : {}),
+          ...(state.search.dataset === "extlat" && state.search.countMax ? { count_max: state.search.countMax } : {}),
+        }).toString()}${state.search.properties.map((value) => `&prop=${encodeURIComponent(value)}`).join("")}`)
+        : await fetchJson(`/api/items?dataset=${state.dataset}&n=${state.level}&limit=${state.pageSize}&offset=${state.offset}${R.currentFilterQuery() ? `&${R.currentFilterQuery()}` : ""}`);
+      const filename = searchMode
+        ? `blueprint-search-${state.search.dataset}-${state.search.nMin}-${state.search.nMax}.${format}`
+        : `entries-${state.dataset}${state.level}.${format}`;
       if (format === "csv") {
-        const rows = [["index", "encoding", "count", "width", "height"]];
-        payload.items.forEach((item) => rows.push([item.index, item.encoding, item.count ?? "", item.width, item.height]));
+        const rows = [["dataset", "n", "index", "encoding", "count", "width", "height"]];
+        payload.items.forEach((item) => rows.push([item.dataset || state.dataset, item.n || state.level, item.index, item.encoding, item.count ?? "", item.width, item.height]));
         downloadCsv(filename, rows);
       } else {
         downloadJson(filename, payload);
@@ -28,6 +43,9 @@
   function renderEntryList(payload) {
     state.currentEntries = payload.items;
     state.total = payload.total;
+    byId("entryListMeta").textContent = payload.total
+      ? `${payload.total.toLocaleString()} entries in ${state.dataset}${state.level}. Showing ${payload.items.length} from offset ${state.offset}.`
+      : `No entries for ${state.dataset}${state.level}.`;
     const list = byId("entryList");
     const savedMap = R.savedBlueprintMap();
     if (!payload.items.length) {
@@ -277,11 +295,10 @@
     `;
     panel.querySelectorAll(".family-primary").forEach((button) => {
       button.addEventListener("click", async () => {
-        byId("dataset").value = "reslat";
         state.dataset = "reslat";
-        byId("level").value = payload.n;
         state.level = Number(payload.n);
         byId("primaryIndex").value = button.dataset.index;
+        R.renderSearchSelectors();
         await R.fetchPropertyFilters();
         await syncPrimaryContext({ resetIndex: false });
       });
@@ -344,6 +361,9 @@
         }
         if (target === "primary") {
           await loadFamilyComparison(entry);
+          if (R.loadPrimaryWorkbench) {
+            await R.loadPrimaryWorkbench(entry);
+          }
         }
         R.syncUrlState();
       } catch (error) {
@@ -356,6 +376,9 @@
         byId(boxId).innerHTML = `<div class="empty">${appError.message}</div>`;
         if (target === "primary") {
           hideFamilyPanel();
+          if (R.loadPrimaryWorkbench) {
+            await R.loadPrimaryWorkbench(null);
+          }
         }
       }
     });

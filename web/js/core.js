@@ -3,6 +3,7 @@ const Residuals = window.Residuals || (window.Residuals = {});
 const state = {
   dataset: "lat",
   level: 6,
+  mode: "browse",
   trendMode: "counts",
   pageSize: 50,
   offset: 0,
@@ -14,12 +15,13 @@ const state = {
   primaryEntry: null,
   secondaryEntry: null,
   savedBlueprints: [],
+  shortlistIds: [],
   storageStatus: null,
   storageError: null,
   pendingBlueprintTarget: null,
   filterBounds: null,
+  searchFilterBounds: null,
   propertyOptions: [],
-  searchPropertyOptions: [],
   filters: {
     widthMin: "",
     widthMax: "",
@@ -290,9 +292,12 @@ const LoadingHub = (() => {
         summary: { element: byId("summary") },
         controls: { element: byId("controlsPanel"), disable: "button, input, select" },
         entries: { element: byId("entriesPanel"), disable: "button, input, select" },
-        search: { element: byId("searchPanel"), disable: "button, input, select" },
         analysis: { element: byId("analysisShell"), disable: "button, input, select" },
         appendix: { element: byId("appendixShell"), disable: "button, input, select" },
+        smallest: { element: byId("smallestShell"), disable: "button, input, select" },
+        shortlist: { element: byId("shortlistShell"), disable: "button, input, select" },
+        design: { element: byId("designReportShell"), disable: "button, input, select" },
+        countergap: { element: byId("counterGapShell"), disable: "button, input, select" },
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
         secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
         family: { element: byId("familyShell"), disable: "button, input, select" },
@@ -383,6 +388,18 @@ const LoadingHub = (() => {
 })();
 
 const loading = LoadingHub.get();
+
+function activeFilterState() {
+  return state.mode === "search" ? state.search : state.filters;
+}
+
+function activeFilterBounds() {
+  return state.mode === "search" ? state.searchFilterBounds : state.filterBounds;
+}
+
+function activeDataset() {
+  return state.mode === "search" ? state.search.dataset : state.dataset;
+}
 
 async function fetchJson(url, options = {}) {
   const candidates = [url];
@@ -558,6 +575,9 @@ Object.assign(Residuals, {
   openDialog,
   closeDialog,
   loading,
+  activeFilterState,
+  activeFilterBounds,
+  activeDataset,
   fetchJson,
   optionMarkup,
   escapeHtml,

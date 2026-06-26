@@ -46,6 +46,7 @@
   function renderSavedBlueprints() {
     renderStorageMeta();
     const list = byId("blueprintList");
+    const shortlist = new Set(state.shortlistIds || []);
     if (!state.savedBlueprints.length) {
       list.innerHTML = `<div class="empty">No saved blueprints yet.</div>`;
       return;
@@ -65,6 +66,7 @@
         <div class="entry-actions blueprint-actions">
           <button class="pick-blueprint-primary" data-id="${item.id}" type="button">Primary</button>
           <button class="pick-blueprint-secondary" data-id="${item.id}" type="button">Secondary</button>
+          <button class="ghost-button shortlist-blueprint ${shortlist.has(item.id) ? "is-active" : ""}" data-id="${item.id}" type="button">${shortlist.has(item.id) ? "Shortlisted" : "Shortlist"}</button>
           <button class="ghost-button delete-blueprint" data-id="${item.id}" type="button">Delete</button>
         </div>
       </div>
@@ -77,9 +79,8 @@
         }
         state.dataset = item.dataset;
         state.level = item.n;
-        byId("dataset").value = item.dataset;
-        byId("level").value = item.n;
         byId("primaryIndex").value = item.index;
+        R.renderSearchSelectors();
         await R.fetchPropertyFilters();
         await R.syncPrimaryContext({ resetIndex: false });
       });
@@ -94,6 +95,11 @@
         byId("secondaryLevel").value = item.n;
         byId("secondaryIndex").value = item.index;
         await R.loadViewer("secondary");
+      });
+    });
+    list.querySelectorAll(".shortlist-blueprint").forEach((button) => {
+      button.addEventListener("click", () => {
+        R.toggleShortlist(Number(button.dataset.id));
       });
     });
     list.querySelectorAll(".delete-blueprint").forEach((button) => {
@@ -129,6 +135,9 @@
         R.errors.handle(error, { source: "storage.blueprints", kind: "network" });
       }
       renderSavedBlueprints();
+      if (R.loadShortlistCompare) {
+        await R.loadShortlistCompare();
+      }
       if (state.currentEntries.length || state.total === 0) {
         R.renderEntryList({ items: state.currentEntries, total: state.total });
       }
@@ -197,6 +206,7 @@
   Object.assign(R, {
     blueprintKey,
     savedBlueprintMap,
+    renderSavedBlueprints,
     loadStorageStatus,
     loadSavedBlueprints,
     openBlueprintDialog,
