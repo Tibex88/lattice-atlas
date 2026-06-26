@@ -92,6 +92,69 @@
           <div id="entryList" class="entry-list"></div>
         </div>
 
+        <div id="searchPanel" class="panel loading-region">
+          <div class="panel-title">
+            <h2>Blueprint Search</h2>
+            <button class="info-button" type="button" data-info-title="Blueprint Search" data-info-body="Search across multiple sizes for structures that match shape-level constraints. Results are ranked from the actual database-backed metadata, not from hardcoded examples.">i</button>
+          </div>
+          <label>Dataset
+            <select id="searchDataset"></select>
+          </label>
+          <div class="filter-grid">
+            <label>n min
+              <select id="searchNMin"></select>
+            </label>
+            <label>n max
+              <select id="searchNMax"></select>
+            </label>
+          </div>
+          <div class="filter-grid">
+            <label>Width min
+              <input id="searchWidthMin" type="number" min="1" step="1">
+            </label>
+            <label>Width max
+              <input id="searchWidthMax" type="number" min="1" step="1">
+            </label>
+          </div>
+          <div class="filter-grid">
+            <label>Height min
+              <input id="searchHeightMin" type="number" min="1" step="1">
+            </label>
+            <label>Height max
+              <input id="searchHeightMax" type="number" min="1" step="1">
+            </label>
+          </div>
+          <div id="searchCountRow" class="filter-grid">
+            <label>Count min
+              <input id="searchCountMin" type="number" min="0" step="1">
+            </label>
+            <label>Count max
+              <input id="searchCountMax" type="number" min="0" step="1">
+            </label>
+          </div>
+          <label>Result limit
+            <select id="searchLimit">
+              <option>10</option>
+              <option selected>25</option>
+              <option>50</option>
+              <option>100</option>
+            </select>
+          </label>
+          <div class="property-filter">
+            <div class="panel-title">
+              <h3>Search Properties</h3>
+              <button id="searchPropertiesInfo" class="info-button" type="button" data-info-title="Search Properties" data-info-body="These are the property constraints for blueprint search. Results must satisfy every checked item.">i</button>
+            </div>
+            <div id="searchPropertyFilters" class="property-list"></div>
+          </div>
+          <div class="filter-actions">
+            <button id="runBlueprintSearch" type="button">Search</button>
+            <button id="resetBlueprintSearch" class="ghost-button" type="button">Reset</button>
+          </div>
+          <div id="searchSummary" class="meta">No search run yet.</div>
+          <div id="searchResults" class="entry-list"></div>
+        </div>
+
         <div id="blueprintsPanel" class="panel loading-region">
           <div class="panel-title">
             <h2>Saved Blueprints</h2>
@@ -267,7 +330,8 @@
     <script src="/js/controls.js?v=20260626c"></script>
     <script src="/js/analysis.js?v=20260626c"></script>
     <script src="/js/viewers.js?v=20260626c"></script>
-    <script src="/js/blueprints.js?v=20260626c"></script>
-    <script src="/app.js?v=20260626c"></script>
+    <script src="/js/blueprints.js?v=20260626d"></script>
+    <script src="/js/search.js?v=20260626d"></script>
+    <script src="/app.js?v=20260626d"></script>
   </body>
   </html>

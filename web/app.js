@@ -12,6 +12,7 @@
     byId("level").innerHTML = R.optionMarkup(levels, state.level);
     byId("secondaryLevel").innerHTML = R.optionMarkup(levels, restored.secondaryLevel);
     await Promise.all([R.loadSummary(), R.loadStorageStatus()]);
+    await R.initializeBlueprintSearch();
     await R.fetchPropertyFilters();
     await R.loadFilterBounds();
     await Promise.all([R.loadEntries(), R.loadAnalysis(), R.loadSavedBlueprints()]);
@@ -24,6 +25,7 @@
     R.wireInfoButtons();
     R.wireSummaryDialog();
     R.wireBlueprintDialog();
+    R.wireBlueprintSearch();
 
     byId("copyQueryLink").addEventListener("click", async () => {
       R.syncUrlState();

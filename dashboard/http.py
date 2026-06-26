@@ -15,6 +15,7 @@ from dashboard.analytics import (
     reslat_family,
     width_height_distribution,
 )
+from dashboard.blueprint_search import blueprint_search, parse_blueprint_search
 from dashboard.config import WEB
 from dashboard.datasets import (
     decode_entry,
@@ -128,6 +129,11 @@ class Handler(SimpleHTTPRequestHandler):
             n = parse_int(params, "n")
             index = parse_int(params, "index")
             self.send_json(decode_entry(dataset, n, index))
+            return
+        if parsed.path == "/api/blueprint-search":
+            filters = parse_blueprint_search(params)
+            filters["dataset"] = parse_dataset(params)
+            self.send_json(blueprint_search(filters))
             return
         if parsed.path == "/api/storage":
             self.send_json(STORE.status())
