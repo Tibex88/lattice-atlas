@@ -44,6 +44,10 @@ const state = {
     countMax: "",
     properties: [],
   },
+  smallest: {
+    dataset: "reslat",
+    properties: [],
+  },
 };
 
 const byId = (id) => document.getElementById(id);
@@ -333,7 +337,6 @@ const LoadingHub = (() => {
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
         secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
         family: { element: byId("familyShell"), disable: "button, input, select" },
-        blueprints: { element: byId("blueprintsPanel"), disable: "button, input, select, textarea" },
       };
       const config = configs[name];
       if (!config?.element) {
@@ -422,15 +425,33 @@ const LoadingHub = (() => {
 const loading = LoadingHub.get();
 
 function activeFilterState() {
-  return state.mode === "search" ? state.search : state.filters;
+  if (state.mode === "search") {
+    return state.search;
+  }
+  if (state.mode === "smallest") {
+    return state.smallest;
+  }
+  return state.filters;
 }
 
 function activeFilterBounds() {
-  return state.mode === "search" ? state.searchFilterBounds : state.filterBounds;
+  if (state.mode === "search") {
+    return state.searchFilterBounds;
+  }
+  if (state.mode === "smallest") {
+    return null;
+  }
+  return state.filterBounds;
 }
 
 function activeDataset() {
-  return state.mode === "search" ? state.search.dataset : state.dataset;
+  if (state.mode === "search") {
+    return state.search.dataset;
+  }
+  if (state.mode === "smallest") {
+    return state.smallest.dataset;
+  }
+  return state.dataset;
 }
 
 async function fetchJson(url, options = {}) {

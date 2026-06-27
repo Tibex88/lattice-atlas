@@ -3,371 +3,120 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lattice Atlas Workbench</title>
+    <title>Lattice Atlas</title>
     <link rel="icon" type="image/png" href="/image.png">
-    <link rel="stylesheet" href="/styles.css?v=20260627a">
+    <link rel="stylesheet" href="/styles.css?v=20260627b">
   </head>
-  <body>
-    <main class="app-shell">
-      <aside class="sidebar">
-        <div class="sidebar-inner">
-          <div class="sidebar-brand">
+  <body class="landing-page">
+    <main class="landing-shell">
+      <section class="workspace-intro landing-intro">
+        <div class="landing-copy">
+          <div class="intro-brand">
             <img class="brand-mark" src="/image.png" alt="Lattice Atlas logo">
-            <div>
+            <div class="intro-brand-copy">
               <div class="eyebrow">Shape-First Research Dashboard</div>
               <h1>Lattice Atlas</h1>
             </div>
           </div>
-          <p class="lede">Browse finite lattice families, shortlist strong blueprint candidates, and compare structures side by side without leaving the database-driven view.</p>
-          <div class="sidebar-badges" aria-label="Workbench highlights">
+          <div class="intro-pill">Introducing a database-backed blueprint workbench</div>
+          <div class="intro-copy">
+            <h2>Find balanced algebraic shapes before you map them to content.</h2>
+            <p class="lede">Use the atlas as a search-first front door into finite lattices and residuated lattices, then move into the workbench to inspect, compare, filter, and shortlist candidate shapes.</p>
+          </div>
+          <div class="intro-actions">
+            <a class="intro-link" href="/workbench">Open workbench</a>
+          </div>
+          <div class="intro-rail" aria-label="Workbench highlights">
             <span class="status-chip">DB-driven</span>
             <span class="status-chip">Paper-aligned</span>
             <span class="status-chip">Blueprint search</span>
           </div>
-
-        <div id="controlsPanel" class="panel loading-region">
-          <div class="panel-title">
-            <h2>Controls</h2>
-            <button class="info-button" type="button" data-info-title="Controls" data-info-body="Choose how many entries to list per page, filter them by dimensions and algebraic properties, and move through the current result set. All filters are computed against the actual database contents.">i</button>
-          </div>
-          <div id="modeSwitch" class="mode-switch" role="tablist" aria-label="Control mode">
-            <button id="browseMode" class="ghost-button mode-button is-active" type="button">Browse Slice</button>
-            <button id="searchMode" class="ghost-button mode-button" type="button">Blueprint Search</button>
-          </div>
-          <div id="searchScopeFields" class="filter-grid search-scope">
-            <label id="searchDatasetRow">Dataset
-              <select id="searchDataset"></select>
-            </label>
-            <label id="searchNMinRow"><span id="searchNMinLabel">n min</span>
-              <select id="searchNMin"></select>
-            </label>
-            <label id="searchNMaxRow">n max
-              <select id="searchNMax"></select>
-            </label>
-          </div>
-          <label id="pageSizeRow">Show
-            <select id="pageSize">
-              <option>10</option>
-              <option>25</option>
-              <option selected>50</option>
-              <option>100</option>
-              <option>200</option>
-            </select>
-          </label>
-          <div class="slider-group">
-            <div class="slider-head">
-              <span>Width</span>
-              <span id="widthRangeLabel" class="slider-value"></span>
-            </div>
-            <div class="double-slider" id="widthSlider">
-              <div class="slider-track"></div>
-              <div id="widthSliderActive" class="slider-range"></div>
-              <input id="filterWidthMin" type="range" min="1" max="12" step="1" value="1">
-              <input id="filterWidthMax" type="range" min="1" max="12" step="1" value="12">
-            </div>
-          </div>
-          <div class="slider-group">
-            <div class="slider-head">
-              <span>Height</span>
-              <span id="heightRangeLabel" class="slider-value"></span>
-            </div>
-            <div class="double-slider" id="heightSlider">
-              <div class="slider-track"></div>
-              <div id="heightSliderActive" class="slider-range"></div>
-              <input id="filterHeightMin" type="range" min="1" max="12" step="1" value="1">
-              <input id="filterHeightMax" type="range" min="1" max="12" step="1" value="12">
-            </div>
-          </div>
-          <div id="countFilterRow" class="filter-grid">
-            <label>Count min
-              <input id="filterCountMin" type="number" min="0" step="1">
-            </label>
-            <label>Count max
-              <input id="filterCountMax" type="number" min="0" step="1">
-            </label>
-          </div>
-          <div class="property-filter">
-            <div class="panel-title">
-              <h3>Properties</h3>
-              <button id="propertyFiltersInfo" class="info-button" type="button" data-info-title="Property Filters" data-info-body="These checkboxes come from the lattice and residuated-lattice property definitions in the codebase. Matching is computed directly from the selected dataset, not from hardcoded tables.">i</button>
-            </div>
-            <div id="propertyFilters" class="property-list"></div>
-          </div>
-          <div class="filter-actions">
-            <button id="applyFilters" type="button">Apply Filters</button>
-            <button id="clearFilters" class="ghost-button" type="button">Clear</button>
-          </div>
-          <div class="query-tools">
-            <div id="constraintSummary" class="meta">No active query constraints.</div>
-            <button id="copyQueryLink" class="ghost-button" type="button">Copy Query Link</button>
-          </div>
-          <div class="pager">
-            <button id="prevPage">Prev</button>
-            <span id="pageMeta"></span>
-            <button id="nextPage">Next</button>
-          </div>
         </div>
-
-        <div id="entriesPanel" class="panel loading-region">
-          <div class="panel-title">
+        <aside class="landing-doc panel">
+          <div class="landing-doc-head">
             <div>
-              <h2 id="entriesTitle">Entries</h2>
-              <div id="entryListMeta" class="meta">Current browse slice.</div>
-            </div>
-            <div id="entriesToolbar" class="appendix-toolbar">
-              <button id="exportListCsv" class="ghost-button" type="button">Export List CSV</button>
-              <button id="exportListJson" class="ghost-button" type="button">Export List JSON</button>
-              <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Open loads it into the primary pane. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
+              <div class="eyebrow">Specification</div>
+              <h2>Program Definitions</h2>
             </div>
           </div>
-          <div id="entryList" class="entry-list"></div>
-        </div>
-
-        <div id="blueprintsPanel" class="panel loading-region">
-          <div class="panel-title">
-            <h2>Saved Blueprints</h2>
-            <button class="info-button" type="button" data-info-title="Saved Blueprints" data-info-body="Save candidate structures you may want to reuse later as game-logic blueprints. Each saved item keeps its dataset, size, index, dimensions, encoding, tags, and notes in local SQLite storage.">i</button>
-          </div>
-          <div id="storageMeta" class="meta">Local storage inactive.</div>
-          <div id="blueprintList" class="entry-list"></div>
-        </div>
-        </div>
-      </aside>
-
-      <section class="workspace">
-        <section class="workspace-hero">
-          <div class="hero-copy">
-            <div class="eyebrow">Residuals Workbench</div>
-            <h2>Find balanced algebraic shapes before you map them to content.</h2>
-            <p>Use browse mode for direct inspection, search mode for blueprint hunting, then compare and analyze candidate structures in one place.</p>
-          </div>
-          <div class="hero-rail">
-            <div class="hero-stat">
-              <span class="hero-label">Flow</span>
-              <strong>Browse → Analyze → Compare</strong>
-            </div>
-            <div class="hero-stat">
-              <span class="hero-label">Scope</span>
-              <strong>lat / extlat / reslat</strong>
-            </div>
-            <div class="hero-stat">
-              <span class="hero-label">Goal</span>
-              <strong>Pick strong blueprint shapes fast</strong>
-            </div>
-          </div>
-        </section>
-        <div id="analysisDrawer" class="analysis-drawer" aria-hidden="true">
-          <button id="analysisDrawerBackdrop" class="analysis-drawer-backdrop" type="button" aria-label="Close analysis drawer"></button>
-          <div class="analysis-drawer-panel">
-            <section id="analysisShell" class="analysis-shell loading-region">
-          <div class="analysis-head">
-            <div>
-              <h2>Analysis</h2>
-              <p class="compare-note">Counts, ratios, distributions, and expansion rankings for the currently selected primary dataset and size.</p>
-            </div>
-            <div class="analysis-head-actions">
-              <button class="info-button" type="button" data-info-title="Analysis" data-info-body="This area summarizes the currently selected size n. It combines overall counts, ratios, precomputed width/height distributions, and top extlat expansion counts so the browser is not just entry-by-entry inspection.">i</button>
-              <button id="closeAnalysisDrawer" class="ghost-button" type="button">Close</button>
-            </div>
-          </div>
-          <div id="metricCards" class="metric-cards"></div>
-          <div class="analysis-grid">
-            <article class="panel analysis-panel">
-              <div class="panel-title">
-                <h3>Count Trends</h3>
-                <div class="trend-toolbar">
-                  <button id="trendCounts" class="ghost-button trend-toggle is-active" type="button">Counts</button>
-                  <button id="trendRatios" class="ghost-button trend-toggle" type="button">Ratios</button>
-                  <button class="info-button" type="button" data-info-title="Count Trends" data-info-body="Counts mode shows raw growth across sizes. Ratios mode shows reduct-supporting lattices over all lattices, residuated lattices over all lattices, and expansions per reduct.">i</button>
-                </div>
-              </div>
-              <div id="trendChart"></div>
-            </article>
-            <article class="panel analysis-panel">
-              <div class="panel-title">
-                <h3>Width × Height</h3>
-                <button class="info-button" type="button" data-info-title="Width × Height" data-info-body="This heatmap uses the precomputed contexts for lattices or residuated lattices. Each cell counts structures with the given width and height at the current size n.">i</button>
-              </div>
-              <div id="widthHeightPanel"></div>
-            </article>
-          </div>
-          <article class="panel analysis-panel">
-            <div class="panel-title">
-              <h3>Top extlat Expansion Counts</h3>
-              <button class="info-button" type="button" data-info-title="extlat Rankings" data-info-body="Each extlat item is a base lattice paired with the number of residuated-lattice expansions it admits. This ranking surfaces the most expandable lattices at the current size n.">i</button>
-            </div>
-            <div id="rankingPanel"></div>
-          </article>
-          <article id="appendixShell" class="panel analysis-panel loading-region">
-            <div class="panel-title">
-              <h3>Appendix Tables</h3>
-              <div class="appendix-toolbar">
-                <button id="exportAppendixProperties" class="ghost-button" type="button">Export Properties</button>
-                <button id="exportAppendixDimensions" class="ghost-button" type="button">Export Dimensions</button>
-                <button class="info-button" type="button" data-info-title="Appendix Tables" data-info-body="These tables summarize the current dataset and size using exact counts from the database-backed structures. They are meant to mirror the dense aggregate tables you would expect in a paper appendix.">i</button>
-              </div>
-            </div>
-            <div id="appendixPanel"></div>
-          </article>
-          <article id="cooccurrenceShell" class="panel analysis-panel loading-region">
-            <div class="panel-title">
-              <h3>Property Co-Occurrence</h3>
-              <div class="appendix-toolbar">
-                <button id="exportCooccurrenceCsv" class="ghost-button" type="button">Export Matrix</button>
-                <button class="info-button" type="button" data-info-title="Property Co-Occurrence" data-info-body="This matrix shows how often two properties or algebra classes appear together in the selected dataset and size. Clicking a cell applies both filters at once.">i</button>
-              </div>
-            </div>
-            <div id="cooccurrencePanel"></div>
-          </article>
-          <article id="smallestShell" class="panel analysis-panel loading-region">
-            <div class="panel-title">
-              <h3>Smallest-Example Finder</h3>
-              <button class="info-button" type="button" data-info-title="Smallest-Example Finder" data-info-body="Find the least-size structure that satisfies one or more selected properties. This helps surface canonical minimal witnesses instead of paging manually.">i</button>
-            </div>
-            <div class="filter-grid">
-              <label>Dataset
-                <select id="smallestDataset"></select>
-              </label>
-              <button id="runSmallestExample" type="button">Find Smallest Match</button>
-            </div>
-            <div id="smallestPropertyFilters" class="property-list compact-property-list"></div>
-            <div id="smallestResult"></div>
-          </article>
+          <article class="landing-doc-body">
+            <section class="doc-section">
+              <p>This specification defines the multilattices, residuated lattices, residuated multilattices, homomorphisms, and derivations implemented by the program. The residuated lattices are bounded and commutative, with top as the multiplicative unit.</p>
             </section>
-          </div>
-        </div>
-        <div class="compare-header">
-          <h2>Compare</h2>
-          <div class="compare-note">Load one candidate into Primary, then use Secondary to test whether a competing shape is simpler, taller, wider, or structurally closer to what you want.</div>
-        </div>
-        <div class="compare-grid">
-          <article id="primaryCard" class="viewer-card loading-region">
-            <div class="viewer-top">
-              <div class="viewer-title">
-                <h3>Primary</h3>
-                <button class="info-button" type="button" data-info-title="Primary Pane" data-info-body="This pane shows the main entry you are browsing. Dataset family and size n come from Controls. Use the index here to load a specific item. The graph is the lattice Hasse diagram, and the tables below show the decoded order matrix and, for reslat, the multiplication table.">i</button>
+            <section class="doc-section">
+              <h3>1. Multilattices</h3>
+              <p>For a poset <code>(P, ≤)</code> and any subset <code>X ⊆ P</code>, the upper bounds are <code>X↑ = {p ∈ P | p ≥ x for all x ∈ X}</code> and the lower bounds are <code>X↓ = {p ∈ P | p ≤ x for all x ∈ X}</code>.</p>
+              <div class="doc-definition">
+                <strong>Ordered Multilattice</strong>
+                <p>A poset <code>(M, ≤)</code> is an ordered multilattice when every element of <code>{x, y}↑</code> lies above an element of <code>x ⊔ y</code>, and every element of <code>{x, y}↓</code> lies below an element of <code>x ⊓ y</code>.</p>
               </div>
-            </div>
-            <div class="viewer-controls viewer-controls-primary">
-              <label>Dataset
-                <select id="dataset"></select>
-              </label>
-              <label>Size n
-                <select id="level"></select>
-              </label>
-              <label>Index
-                <input id="primaryIndex" type="number" min="0" step="1">
-              </label>
-              <button id="loadPrimary">Load</button>
-              <button id="savePrimaryBlueprint" class="ghost-button" type="button">Save</button>
-              <button id="exportPrimaryJson" class="ghost-button" type="button">Export</button>
-            </div>
-            <div id="primaryView" class="viewer-body"></div>
-          </article>
-          <article id="secondaryCard" class="viewer-card loading-region">
-            <div class="viewer-top">
-              <div class="viewer-title">
-                <h3>Secondary</h3>
-                <button class="info-button" type="button" data-info-title="Secondary Pane" data-info-body="Use this pane for side-by-side comparison. You can switch to a different dataset family, a different size n, or a different index to compare structure, counts, or multiplication tables.">i</button>
+              <div class="doc-definition">
+                <strong>Multilattice</strong>
+                <p>The algebra <code>(M, ⊔, ⊓)</code> associated with an ordered multilattice <code>(M, ≤)</code>.</p>
               </div>
-            </div>
-            <div class="viewer-controls viewer-controls-secondary">
-              <label>Dataset
-                <select id="secondaryDataset"></select>
-              </label>
-              <label>Size n
-                <select id="secondaryLevel"></select>
-              </label>
-              <label>Index
-                <input id="secondaryIndex" type="number" min="0" step="1">
-              </label>
-              <button id="loadSecondary">Load</button>
-              <button id="saveSecondaryBlueprint" class="ghost-button" type="button">Save</button>
-              <button id="exportSecondaryJson" class="ghost-button" type="button">Export</button>
-            </div>
-            <div id="secondaryView" class="viewer-body"></div>
+              <div class="doc-definition">
+                <strong>Bounded Multilattice</strong>
+                <p>The algebra <code>(M, ⊔, ⊓, 0, 1)</code> associated with an ordered multilattice having least element <code>0</code> and greatest element <code>1</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Homomorphism</strong>
+                <p>A function <code>f : M1 → M2</code> satisfying <code>f(x ⊔ y) ⊆ f(x) ⊔ f(y)</code> and <code>f(x ⊓ y) ⊆ f(x) ⊓ f(y)</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Derivation</strong>
+                <p>Given endomorphisms <code>f</code> and <code>g</code>, an <code>(f, g)</code>-derivation <code>d</code> satisfies <code>d(x ⊓ y) ⊆ (d(x) ⊓ f(y)) ⊔ (g(x) ⊓ d(y))</code>.</p>
+              </div>
+            </section>
+            <section class="doc-section">
+              <h3>2. Residuated Lattices</h3>
+              <div class="doc-definition">
+                <strong>Residuated Lattice</strong>
+                <p>An algebra <code>(L, ∨, ∧, ⊙, →, 0, 1)</code> where <code>(L, ∨, ∧, 0, 1)</code> is a bounded lattice, <code>(L, ⊙, 1)</code> is a commutative monoid, and <code>→</code> satisfies the adjointness law <code>x ⊙ z ≤ y ⇔ x ≤ z → y</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Homomorphism</strong>
+                <p>A map preserving join, meet, multiplication, implication, and the constants <code>0</code> and <code>1</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Multiplicative Derivation</strong>
+                <p>An <code>(f, g)</code>-multiplicative derivation satisfies <code>d(x ⊙ y) = (d(x) ⊙ f(y)) ∨ (g(x) ⊙ d(y))</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Implicative Derivation</strong>
+                <p>An <code>(f, g)</code>-implicative derivation satisfies <code>d(x → y) = (d(x) → f(y)) ∨ (g(x) → d(y))</code>.</p>
+              </div>
+            </section>
+            <section class="doc-section">
+              <h3>3. Residuated Multilattices</h3>
+              <div class="doc-definition">
+                <strong>Residuated Multilattice</strong>
+                <p>An algebra <code>(M, ⊔, ⊓, ⊙, →, 0, 1)</code> where <code>(M, ⊔, ⊓, 0, 1)</code> is a bounded multilattice, <code>(M, ⊙, 1)</code> is a commutative monoid, and adjointness holds: <code>x ⊙ z ≤ y ⇔ x ≤ z → y</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Homomorphism</strong>
+                <p>A map preserving multi-meet, multi-join, multiplication, implication, and the constants <code>0</code> and <code>1</code>, with the meet and join conditions using subset inclusion.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Multiplicative Derivation</strong>
+                <p>An <code>(f, g)</code>-multiplicative derivation satisfies <code>d(x ⊙ y) ∈ (d(x) ⊙ f(y)) ⊔ (g(x) ⊙ d(y))</code>.</p>
+              </div>
+              <div class="doc-definition">
+                <strong>Implicative Derivation</strong>
+                <p>An <code>(f, g)</code>-implicative derivation satisfies <code>d(x → y) ∈ (d(x) → f(y)) ⊔ (g(x) → d(y))</code>.</p>
+              </div>
+            </section>
+            <section class="doc-section">
+              <h3>References</h3>
+              <ul class="doc-list">
+                <li>Inma P. Cabrera et al., <em>On residuation in multilattices: Filters, congruences and homomorphisms</em>, 2014.</li>
+                <li>D. L. Keubeng Yemene et al., <em>Some types of derivations in bounded commutative residuated lattices</em>, 2020.</li>
+                <li>Darline Laure Keubeng Yemene et al., <em>(f,g)-derivation in residuated multilattices</em>, 2022.</li>
+                <li>Dana Piciu, <em>Prime, minimal prime and maximal ideals spaces in residuated lattices</em>, 2021.</li>
+              </ul>
+            </section>
           </article>
-        </div>
-        <section id="familyShell" class="panel analysis-panel loading-region" hidden>
-          <div class="panel-title">
-            <h3>Same-Lattice Expansions</h3>
-            <button class="info-button" type="button" data-info-title="Same-Lattice Expansions" data-info-body="This section groups residuated lattices that share the same underlying lattice. The Hasse diagram above stays fixed while the cards below show different multiplication tables for the same base order.">i</button>
-          </div>
-          <div id="familyPanel"></div>
-        </section>
-        <section class="analysis-grid">
-          <article id="designReportShell" class="panel analysis-panel loading-region">
-            <div class="panel-title">
-              <h3>Design-Language Balance Report</h3>
-              <button class="info-button" type="button" data-info-title="Design-Language Balance Report" data-info-body="Translates structural width, height, and comparability into designer-facing language about variety, progression, redundancy, and chokepoints.">i</button>
-            </div>
-            <div id="designReportPanel"></div>
-          </article>
-          <article id="counterGapShell" class="panel analysis-panel loading-region">
-            <div class="panel-title">
-              <h3>Counter-Gap Analysis</h3>
-              <button class="info-button" type="button" data-info-title="Counter-Gap Analysis" data-info-body="Uses the residuum table to surface narrow or missing counter regions in the current blueprint.">i</button>
-            </div>
-            <div id="counterGapPanel"></div>
-          </article>
-        </section>
-        <section id="shortlistShell" class="panel analysis-panel loading-region">
-          <div class="panel-title">
-            <h3>Shortlist Compare</h3>
-            <button class="info-button" type="button" data-info-title="Shortlist Compare" data-info-body="Pin saved blueprints into a shortlist, then compare their dimensions and property overlap side by side before deciding which shapes to keep.">i</button>
-          </div>
-          <div id="shortlistPanel"></div>
-        </section>
+        </aside>
       </section>
     </main>
-    <dialog id="infoDialog" class="info-dialog">
-      <div class="info-dialog-card">
-        <div class="info-dialog-head">
-          <h3 id="infoDialogTitle">Info</h3>
-          <button id="closeInfoDialog" class="ghost-button" type="button">Close</button>
-        </div>
-        <div id="infoDialogBody" class="info-dialog-body"></div>
-      </div>
-    </dialog>
-    <button id="summaryFab" class="summary-fab" type="button" aria-label="Open summary">?</button>
-    <dialog id="summaryDialog" class="info-dialog">
-      <div class="info-dialog-card summary-dialog-card">
-        <div class="info-dialog-head">
-          <h3>Summary</h3>
-          <button id="closeSummaryDialog" class="ghost-button" type="button">Close</button>
-        </div>
-        <p class="meta">Counts by dataset family and size. For <code>extlat</code>, max expansions is the largest number of residuated-lattice expansions for a single base lattice.</p>
-        <div id="summary" class="summary-popup loading-region"></div>
-      </div>
-    </dialog>
-    <dialog id="blueprintDialog" class="info-dialog">
-      <form id="blueprintForm" class="info-dialog-card blueprint-dialog-card" method="dialog">
-        <div class="info-dialog-head">
-          <h3>Save Blueprint</h3>
-          <button id="closeBlueprintDialog" class="ghost-button" type="button">Close</button>
-        </div>
-        <div id="blueprintDialogMeta" class="meta"></div>
-        <label>Title
-          <input id="blueprintTitle" type="text" maxlength="120" placeholder="Short label for this shape">
-        </label>
-        <label>Tags
-          <input id="blueprintTags" type="text" maxlength="240" placeholder="movement, combat, support">
-        </label>
-        <label>Notes
-          <textarea id="blueprintNotes" rows="5" placeholder="Why this shape is useful, what you noticed, or what it may map to."></textarea>
-        </label>
-        <div class="dialog-actions">
-          <button id="submitBlueprint" type="submit">Save Blueprint</button>
-        </div>
-      </form>
-    </dialog>
-    <script src="/js/core.js?v=20260627a"></script>
-    <script src="/js/controls.js?v=20260626c"></script>
-    <script src="/js/analysis.js?v=20260626c"></script>
-    <script src="/js/viewers.js?v=20260626c"></script>
-    <script src="/js/blueprints.js?v=20260626d"></script>
-    <script src="/js/search.js?v=20260627a"></script>
-    <script src="/js/workbench.js?v=20260626e"></script>
-    <script src="/app.js?v=20260627a"></script>
   </body>
-  </html>
+</html>

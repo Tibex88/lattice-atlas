@@ -15,8 +15,14 @@
 
   function ensureSearchDataset() {
     const datasets = availableDatasets();
-    if (!datasets.includes(state.search.dataset)) {
-      state.search.dataset = datasets[0] || state.dataset || "lat";
+    const currentDataset = state.mode === "smallest" ? state.smallest.dataset : state.search.dataset;
+    if (!datasets.includes(currentDataset)) {
+      const fallback = datasets[0] || state.dataset || "lat";
+      if (state.mode === "smallest") {
+        state.smallest.dataset = fallback;
+      } else {
+        state.search.dataset = fallback;
+      }
     }
   }
 
@@ -39,6 +45,10 @@
   }
 
   function syncSearchStateFromInputs() {
+    if (state.mode === "smallest") {
+      state.smallest.dataset = byId("searchDataset").value;
+      return;
+    }
     state.search.dataset = byId("searchDataset").value;
     state.search.nMin = Number(byId("searchNMin").value || 1);
     state.search.nMax = Number(byId("searchNMax").value || state.search.nMin || 1);
@@ -48,16 +58,23 @@
   }
 
   function renderSearchSelectors() {
-    state.search.dataset = state.mode === "browse" ? state.dataset : state.search.dataset;
-    state.search.nMin = state.mode === "browse" ? state.level : state.search.nMin;
-    state.search.nMax = state.mode === "browse" ? state.level : state.search.nMax;
+    if (state.mode === "browse") {
+      state.search.dataset = state.dataset;
+      state.search.nMin = state.level;
+      state.search.nMax = state.level;
+    }
     ensureSearchDataset();
-    ensureSearchSizeBounds();
+    if (state.mode !== "smallest") {
+      ensureSearchSizeBounds();
+    }
     const datasets = availableDatasets();
-    const sizes = availableSizes(state.search.dataset);
-    byId("searchDataset").innerHTML = R.optionMarkup(datasets, state.search.dataset);
-    byId("searchNMin").innerHTML = R.optionMarkup(sizes, state.search.nMin);
-    byId("searchNMax").innerHTML = R.optionMarkup(sizes, state.search.nMax);
+    const selectedDataset = state.mode === "smallest" ? state.smallest.dataset : state.search.dataset;
+    byId("searchDataset").innerHTML = R.optionMarkup(datasets, selectedDataset);
+    if (state.mode !== "smallest") {
+      const sizes = availableSizes(state.search.dataset);
+      byId("searchNMin").innerHTML = R.optionMarkup(sizes, state.search.nMin);
+      byId("searchNMax").innerHTML = R.optionMarkup(sizes, state.search.nMax);
+    }
     if (byId("dataset")) {
       byId("dataset").value = state.dataset;
     }
@@ -68,31 +85,40 @@
   }
 
   function renderModeUI() {
+    const browseMode = state.mode === "browse";
     const searchMode = state.mode === "search";
+    const smallestMode = state.mode === "smallest";
     const scope = byId("searchScopeFields");
-    byId("browseMode").classList.toggle("is-active", !searchMode);
+    byId("browseMode").classList.toggle("is-active", browseMode);
     byId("searchMode").classList.toggle("is-active", searchMode);
+    byId("smallestMode").classList.toggle("is-active", smallestMode);
     scope.hidden = false;
-    scope.classList.toggle("browse-scope", !searchMode);
+    scope.classList.toggle("browse-scope", browseMode);
     scope.classList.toggle("search-scope-mode", searchMode);
     byId("searchDatasetRow").style.display = "";
     byId("searchNMaxRow").style.display = searchMode ? "" : "none";
-    byId("searchNMinRow").style.display = "";
+    byId("searchNMinRow").style.display = smallestMode ? "none" : "";
     byId("searchNMinLabel").textContent = searchMode ? "n min" : "n";
-    byId("pageSizeRow").hidden = false;
-    byId("copyQueryLink").hidden = searchMode;
-    byId("entriesTitle").textContent = searchMode ? "Blueprint Results" : "Entries";
+    byId("pageSizeRow").hidden = !searchMode && !browseMode;
+    byId("widthSliderGroup").hidden = smallestMode;
+    byId("heightSliderGroup").hidden = smallestMode;
+    byId("countFilterRow").hidden = smallestMode;
+    byId("copyQueryLink").hidden = searchMode || smallestMode;
+    byId("entriesTitle").textContent = searchMode ? "Blueprint Results" : smallestMode ? "Smallest Example" : "Entries";
     byId("entryListMeta").textContent = searchMode
       ? "Search across sizes using the same live database-backed constraints."
-      : "Current browse slice.";
-    byId("applyFilters").textContent = searchMode ? "Run Search" : "Apply Filters";
-    byId("clearFilters").textContent = searchMode ? "Reset Search" : "Clear";
+      : smallestMode
+        ? "Find the least-size witness for the selected dataset and property set."
+        : "Current browse slice.";
+    byId("applyFilters").textContent = searchMode ? "Run Search" : smallestMode ? "Find Smallest Match" : "Apply Filters";
+    byId("clearFilters").textContent = searchMode ? "Reset Search" : smallestMode ? "Reset Finder" : "Clear";
     byId("exportListCsv").textContent = searchMode ? "Export Results CSV" : "Export List CSV";
     byId("exportListJson").textContent = searchMode ? "Export Results JSON" : "Export List JSON";
     const pager = document.querySelector(".pager");
     if (pager) {
-      pager.hidden = searchMode;
+      pager.hidden = searchMode || smallestMode;
     }
+    byId("entriesToolbar").hidden = smallestMode;
   }
 
   function resetBlueprintSearchForm() {
@@ -284,19 +310,28 @@
     if (state.mode === "search") {
       return runBlueprintSearch();
     }
+    if (state.mode === "smallest") {
+      return R.runSmallestExample();
+    }
     return R.loadEntries();
   }
 
   async function setMode(mode, { syncResults = true } = {}) {
-    state.mode = mode === "search" ? "search" : "browse";
+    state.mode = ["browse", "search", "smallest"].includes(mode) ? mode : "browse";
     if (state.mode === "browse") {
       state.search.dataset = state.dataset;
       state.search.nMin = state.level;
       state.search.nMax = state.level;
+    } else if (state.mode === "smallest" && !state.smallest.dataset) {
+      state.smallest.dataset = state.dataset;
     }
     renderModeUI();
     renderSearchSelectors();
-    await Promise.all([R.fetchPropertyFilters(), R.loadFilterBounds()]);
+    if (state.mode === "smallest") {
+      await R.fetchPropertyFilters();
+    } else {
+      await Promise.all([R.fetchPropertyFilters(), R.loadFilterBounds()]);
+    }
     R.renderConstraintSummary();
     R.applyFilterInputsFromState();
     if (syncResults) {
@@ -326,8 +361,18 @@
     byId("searchMode").addEventListener("click", R.protect("search.mode_search", async () => {
       await setMode("search");
     }, { kind: "ui" }));
+    byId("smallestMode").addEventListener("click", R.protect("search.mode_smallest", async () => {
+      await setMode("smallest");
+    }, { kind: "ui" }));
     byId("searchDataset").addEventListener("change", R.protect("search.dataset", async () => {
       syncSearchStateFromInputs();
+      if (state.mode === "smallest") {
+        await R.fetchPropertyFilters();
+        R.renderConstraintSummary();
+        R.applyFilterInputsFromState();
+        R.syncUrlState();
+        return;
+      }
       if (state.mode === "browse") {
         state.dataset = state.search.dataset;
         renderSearchSelectors();

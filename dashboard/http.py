@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from dashboard.analytics import (
@@ -308,6 +308,17 @@ async def sessions_delete_endpoint(request: Request):
     params = query_param_map(request)
     session_id = parse_int(params, "id")
     return STORE.delete_session(session_id)
+
+
+@app.get("/")
+async def landing_page():
+    return FileResponse(WEB / "index.html")
+
+
+@app.get("/workbench")
+@app.get("/workbench/")
+async def workbench_page():
+    return FileResponse(WEB / "workbench.html")
 
 
 app.mount("/", StaticFiles(directory=str(WEB), html=True), name="web")
