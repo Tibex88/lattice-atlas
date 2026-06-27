@@ -3,15 +3,27 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Residuals Viewer</title>
+    <title>Lattice Atlas Workbench</title>
     <link rel="icon" type="image/png" href="/image.png">
     <link rel="stylesheet" href="/styles.css?v=20260626b">
   </head>
   <body>
     <main class="app-shell">
-      <section class="sidebar">
-        <h1>Residuals Viewer</h1>
-        <p class="lede">Browse decoded lattice data and compare two entries side by side.</p>
+      <aside class="sidebar">
+        <div class="sidebar-inner">
+          <div class="sidebar-brand">
+            <img class="brand-mark" src="/image.png" alt="Lattice Atlas logo">
+            <div>
+              <div class="eyebrow">Shape-First Research Dashboard</div>
+              <h1>Lattice Atlas</h1>
+            </div>
+          </div>
+          <p class="lede">Browse finite lattice families, shortlist strong blueprint candidates, and compare structures side by side without leaving the database-driven view.</p>
+          <div class="sidebar-badges" aria-label="Workbench highlights">
+            <span class="status-chip">DB-driven</span>
+            <span class="status-chip">Paper-aligned</span>
+            <span class="status-chip">Blueprint search</span>
+          </div>
 
         <div id="controlsPanel" class="panel loading-region">
           <div class="panel-title">
@@ -119,9 +131,31 @@
           <div id="storageMeta" class="meta">Local storage inactive.</div>
           <div id="blueprintList" class="entry-list"></div>
         </div>
-      </section>
+        </div>
+      </aside>
 
       <section class="workspace">
+        <section class="workspace-hero">
+          <div class="hero-copy">
+            <div class="eyebrow">Residuals Workbench</div>
+            <h2>Find balanced algebraic shapes before you map them to content.</h2>
+            <p>Use browse mode for direct inspection, search mode for blueprint hunting, then compare and analyze candidate structures in one place.</p>
+          </div>
+          <div class="hero-rail">
+            <div class="hero-stat">
+              <span class="hero-label">Flow</span>
+              <strong>Browse → Analyze → Compare</strong>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-label">Scope</span>
+              <strong>lat / extlat / reslat</strong>
+            </div>
+            <div class="hero-stat">
+              <span class="hero-label">Goal</span>
+              <strong>Pick strong blueprint shapes fast</strong>
+            </div>
+          </div>
+        </section>
         <section id="analysisShell" class="analysis-shell loading-region">
           <div class="analysis-head">
             <div>
@@ -196,7 +230,7 @@
         </section>
         <div class="compare-header">
           <h2>Compare</h2>
-          <div class="compare-note">Select an entry for the left pane, then optionally load another into the right pane.</div>
+          <div class="compare-note">Load one candidate into Primary, then use Secondary to test whether a competing shape is simpler, taller, wider, or structurally closer to what you want.</div>
         </div>
         <div class="compare-grid">
           <article id="primaryCard" class="viewer-card loading-region">
