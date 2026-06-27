@@ -2,11 +2,6 @@
   const R = window.Residuals;
   const { state, byId, fetchJson, loading, escapeHtml } = R;
 
-  const smallestSearch = {
-    dataset: "reslat",
-    properties: [],
-  };
-
   function availableDatasets() {
     return R.distinct(state.summaryRows.map((row) => row.dataset)).sort();
   }
@@ -20,82 +15,91 @@
     state.shortlistIds = state.shortlistIds.filter((id) => valid.has(id)).slice(0, 4);
   }
 
-  function renderSmallestPropertyFilters(payload) {
-    byId("smallestPropertyFilters").innerHTML = payload.properties.map((prop) => `
-      <label class="property-item">
-        <input class="smallest-property-check" type="checkbox" value="${prop.key}" ${smallestSearch.properties.includes(prop.key) ? "checked" : ""}>
-        <span>${escapeHtml(prop.label)}</span>
-      </label>
-    `).join("");
-  }
-
-  async function loadSmallestPropertyFilters() {
-    return loading.run("smallest", "Loading smallest-example properties...", async () => {
-      const payload = await fetchJson(`/api/filter-options?dataset=${smallestSearch.dataset}`);
-      renderSmallestPropertyFilters(payload);
-    });
-  }
-
-  function renderSmallestSelectors() {
-    const datasets = availableDatasets();
-    if (!datasets.includes(smallestSearch.dataset)) {
-      smallestSearch.dataset = state.dataset || datasets[0] || "reslat";
-    }
-    byId("smallestDataset").innerHTML = R.optionMarkup(datasets, smallestSearch.dataset);
-  }
-
   function renderSmallestResult(payload) {
-    const panel = byId("smallestResult");
+    const panel = byId("entryList");
+    if (!panel) {
+      return;
+    }
     if (!payload?.found) {
+      byId("entryListMeta").textContent = "No minimal witness matched the current dataset and property set.";
       panel.innerHTML = `<div class="empty">${escapeHtml(payload?.explanation || "No smallest example found yet.")}</div>`;
       return;
     }
     const entry = payload.entry;
+    byId("entryListMeta").textContent = `Smallest match: ${entry.dataset}${entry.n} #${entry.index}.`;
     panel.innerHTML = `
-      <div class="workbench-card">
-        <div class="blueprint-head">
-          <strong>${entry.dataset}${entry.n} #${entry.index}</strong>
-          <span class="pill">w=${entry.width}</span>
-          <span class="pill">h=${entry.height}</span>
-          ${entry.count != null ? `<span class="pill">count ${entry.count}</span>` : ""}
+      <div class="blueprint-row search-result-row smallest-result-row" data-dataset="${entry.dataset}" data-n="${entry.n}" data-index="${entry.index}" role="button" tabindex="0">
+        <div class="blueprint-main">
+          <div class="blueprint-head">
+            <strong>${entry.dataset}${entry.n} #${entry.index}</strong>
+            <span class="pill">w=${entry.width}</span>
+            <span class="pill">h=${entry.height}</span>
+            ${entry.count != null ? `<span class="pill">count ${entry.count}</span>` : ""}
+          </div>
+          ${payload.matched_properties?.length ? `<div class="tag-row">${payload.matched_properties.map((label) => `<span class="tag-chip">${escapeHtml(label)}</span>`).join("")}</div>` : ""}
+          <div class="meta">${escapeHtml(payload.explanation)}</div>
         </div>
-        ${payload.matched_properties?.length ? `<div class="tag-row">${payload.matched_properties.map((label) => `<span class="tag-chip">${escapeHtml(label)}</span>`).join("")}</div>` : ""}
-        <div class="meta">${escapeHtml(payload.explanation)}</div>
-        <div class="entry-actions">
+        <div class="entry-actions blueprint-actions">
           <button id="smallestPrimary" type="button">Primary</button>
           <button id="smallestSecondary" type="button">Secondary</button>
           <button id="smallestSave" class="ghost-button" type="button">Save</button>
         </div>
       </div>
     `;
-    byId("smallestPrimary").addEventListener("click", async () => {
+    const openAsPrimary = async () => {
       state.dataset = entry.dataset;
       state.level = entry.n;
       byId("primaryIndex").value = entry.index;
       R.renderSearchSelectors();
-      await R.fetchPropertyFilters();
       await R.syncPrimaryContext({ resetIndex: false });
+      R.openAnalysisDrawer();
+    };
+    const row = panel.querySelector(".smallest-result-row");
+    row?.addEventListener("click", R.protect("smallest.open_result", openAsPrimary, { kind: "ui" }));
+    row?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        R.protect("smallest.open_result_keydown", openAsPrimary, { kind: "ui" })();
+      }
     });
-    byId("smallestSecondary").addEventListener("click", async () => {
+    byId("smallestPrimary").addEventListener("click", R.protect("smallest.primary", async (event) => {
+      event.stopPropagation();
+      await openAsPrimary();
+    }, { kind: "ui" }));
+    byId("smallestSecondary").addEventListener("click", R.protect("smallest.secondary", async (event) => {
+      event.stopPropagation();
       byId("secondaryDataset").value = entry.dataset;
       byId("secondaryLevel").value = entry.n;
       byId("secondaryIndex").value = entry.index;
       await R.loadViewer("secondary");
-    });
-    byId("smallestSave").addEventListener("click", () => {
+    }, { kind: "ui" }));
+    byId("smallestSave").addEventListener("click", (event) => {
+      event.stopPropagation();
       R.openBlueprintDialog(entry);
     });
   }
 
   async function runSmallestExample() {
-    smallestSearch.dataset = byId("smallestDataset").value;
-    smallestSearch.properties = [...document.querySelectorAll(".smallest-property-check:checked")].map((input) => input.value);
-    return loading.run("smallest", "Finding smallest example...", async () => {
-      const params = new URLSearchParams({ dataset: smallestSearch.dataset });
-      smallestSearch.properties.forEach((prop) => params.append("prop", prop));
+    state.smallest.properties = [...document.querySelectorAll(".property-check:checked")].map((input) => input.value);
+    if (!state.smallest.properties.length) {
+      renderSmallestResult({
+        found: false,
+        explanation: "Select one or more properties, then run the finder.",
+      });
+      return null;
+    }
+    return loading.run("entries", "Finding smallest example...", async () => {
+      const params = new URLSearchParams({ dataset: state.smallest.dataset });
+      state.smallest.properties.forEach((prop) => params.append("prop", prop));
       const payload = await fetchJson(`/api/smallest-example?${params.toString()}`);
       renderSmallestResult(payload);
+      return payload;
     });
+  }
+
+  function resetSmallestExampleForm() {
+    state.smallest.dataset = state.dataset;
+    state.smallest.properties = [];
   }
 
   function renderDesignReport(payload) {
@@ -258,29 +262,19 @@
   }
 
   async function initializeWorkbench() {
-    smallestSearch.dataset = state.dataset || "reslat";
-    renderSmallestSelectors();
-    await loadSmallestPropertyFilters();
-    renderSmallestResult({ explanation: "Select one or more properties, then run the finder." });
+    state.smallest.dataset = state.smallest.dataset || state.dataset || "reslat";
     await loadShortlistCompare();
   }
 
-  function wireWorkbench() {
-    byId("smallestDataset").addEventListener("change", R.protect("workbench.smallest_dataset", async () => {
-      smallestSearch.dataset = byId("smallestDataset").value;
-      smallestSearch.properties = [];
-      renderSmallestSelectors();
-      await loadSmallestPropertyFilters();
-    }, { kind: "ui" }));
-    byId("runSmallestExample").addEventListener("click", R.protect("workbench.smallest_run", runSmallestExample, { kind: "ui" }));
-  }
+  function wireWorkbench() {}
 
   Object.assign(R, {
     initializeWorkbench,
     wireWorkbench,
     toggleShortlist,
     loadShortlistCompare,
-    renderSmallestSelectors,
     loadPrimaryWorkbench,
+    runSmallestExample,
+    resetSmallestExampleForm,
   });
 })();

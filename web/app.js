@@ -23,8 +23,10 @@
     R.wireDoubleSlider("Width");
     R.wireDoubleSlider("Height");
     R.wireInfoButtons();
+    R.wireAnalysisDrawer();
     R.wireSummaryDialog();
     R.wireBlueprintDialog();
+    R.wireSavedBlueprintsDialog();
     R.wireBlueprintSearch();
     await R.initializeWorkbench();
     R.wireWorkbench();
@@ -75,6 +77,11 @@
         R.syncUrlState();
         return;
       }
+      if (state.mode === "smallest") {
+        await R.syncPrimaryContext();
+        R.syncUrlState();
+        return;
+      }
       R.clearFilterInputs();
       await R.fetchPropertyFilters();
       await R.syncPrimaryContext();
@@ -90,11 +97,19 @@
         R.syncUrlState();
         return;
       }
+      if (state.mode === "smallest") {
+        await R.syncPrimaryContext();
+        R.syncUrlState();
+        return;
+      }
       await R.syncPrimaryContext();
       R.syncUrlState();
     }, { kind: "ui" }));
 
     byId("pageSize").addEventListener("change", R.protect("controls.page_size", async (e) => {
+      if (state.mode === "smallest") {
+        return;
+      }
       if (state.mode === "search") {
         state.search.limit = Number(e.target.value);
       } else {
@@ -121,9 +136,20 @@
         R.resetBlueprintSearchForm();
         await R.loadFilterBounds();
         await R.fetchPropertyFilters();
+      } else if (state.mode === "smallest") {
+        R.resetSmallestExampleForm();
+        R.renderSearchSelectors();
+        await R.fetchPropertyFilters();
       }
       R.clearFilterInputs();
       state.offset = 0;
+      if (state.mode === "smallest") {
+        byId("entryListMeta").textContent = "Find the least-size witness for the selected dataset and property set.";
+        byId("entryList").innerHTML = `<div class="empty">Select one or more properties, then run the finder.</div>`;
+        R.renderConstraintSummary();
+        R.syncUrlState();
+        return;
+      }
       await R.loadResultsByMode();
       R.syncUrlState();
     }, { kind: "ui" }));
@@ -142,7 +168,10 @@
       }
     }, { kind: "ui" }));
 
-    byId("loadPrimary").addEventListener("click", R.protect("viewer.load_primary", () => R.loadViewer("primary"), { kind: "ui" }));
+    byId("loadPrimary").addEventListener("click", R.protect("viewer.load_primary", async () => {
+      await R.loadViewer("primary");
+      R.openAnalysisDrawer();
+    }, { kind: "ui" }));
     byId("loadSecondary").addEventListener("click", R.protect("viewer.load_secondary", () => R.loadViewer("secondary"), { kind: "ui" }));
 
     byId("savePrimaryBlueprint").addEventListener("click", R.protect("blueprints.open_primary", async () => {

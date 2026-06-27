@@ -30,8 +30,10 @@
     return date.toLocaleString();
   }
 
-  function renderStorageMeta() {
-    const node = byId("storageMeta");
+  function renderStorageMetaInto(node) {
+    if (!node) {
+      return;
+    }
     if (state.storageError) {
       node.textContent = `Storage unavailable: ${state.storageError}`;
       return;
@@ -43,15 +45,17 @@
     node.textContent = `${state.storageStatus.blueprints} blueprints saved in ${state.storageStatus.path}`;
   }
 
-  function renderSavedBlueprints() {
-    renderStorageMeta();
-    const list = byId("blueprintList");
+  function renderStorageMeta() {
+    renderStorageMetaInto(byId("storageMeta"));
+    renderStorageMetaInto(byId("storageMetaModal"));
+  }
+
+  function savedBlueprintMarkup() {
     const shortlist = new Set(state.shortlistIds || []);
     if (!state.savedBlueprints.length) {
-      list.innerHTML = `<div class="empty">No saved blueprints yet.</div>`;
-      return;
+      return `<div class="empty">No saved blueprints yet.</div>`;
     }
-    list.innerHTML = state.savedBlueprints.map((item) => `
+    return state.savedBlueprints.map((item) => `
       <div class="blueprint-row">
         <div class="blueprint-main">
           <div class="blueprint-head">
@@ -71,6 +75,12 @@
         </div>
       </div>
     `).join("");
+  }
+
+  function wireSavedBlueprintActions(list) {
+    if (!list) {
+      return;
+    }
     list.querySelectorAll(".pick-blueprint-primary").forEach((button) => {
       button.addEventListener("click", async () => {
         const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
@@ -83,6 +93,7 @@
         R.renderSearchSelectors();
         await R.fetchPropertyFilters();
         await R.syncPrimaryContext({ resetIndex: false });
+        R.openAnalysisDrawer();
       });
     });
     list.querySelectorAll(".pick-blueprint-secondary").forEach((button) => {
@@ -106,6 +117,18 @@
       button.addEventListener("click", R.protect("blueprints.delete", async () => {
         await deleteBlueprint(Number(button.dataset.id));
       }, { kind: "ui" }));
+    });
+  }
+
+  function renderSavedBlueprints() {
+    renderStorageMeta();
+    const markup = savedBlueprintMarkup();
+    [byId("blueprintList"), byId("blueprintListModal")].forEach((list) => {
+      if (!list) {
+        return;
+      }
+      list.innerHTML = markup;
+      wireSavedBlueprintActions(list);
     });
   }
 
@@ -203,6 +226,20 @@
     });
   }
 
+  function wireSavedBlueprintsDialog() {
+    const dialog = byId("blueprintsDialog");
+    if (!dialog) {
+      return;
+    }
+    byId("blueprintsFab")?.addEventListener("click", () => R.openDialog(dialog));
+    byId("closeBlueprintsDialog")?.addEventListener("click", () => R.closeDialog(dialog));
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        R.closeDialog(dialog);
+      }
+    });
+  }
+
   Object.assign(R, {
     blueprintKey,
     savedBlueprintMap,
@@ -211,5 +248,6 @@
     loadSavedBlueprints,
     openBlueprintDialog,
     wireBlueprintDialog,
+    wireSavedBlueprintsDialog,
   });
 })();

@@ -58,7 +58,7 @@
       const key = R.blueprintKey({ dataset: state.dataset, n: state.level, index: item.index });
       const saved = savedMap.get(key);
       return `
-        <div class="entry-row">
+        <div class="entry-row browse-entry-row" data-index="${item.index}" role="button" tabindex="0">
           <div>
             <div><strong>#${item.index}</strong> ${extra} ${saved ? '<span class="saved-mark">Saved</span>' : ""}</div>
             <div class="meta">w=${item.width}, h=${item.height}</div>
@@ -72,16 +72,34 @@
         </div>
       `;
     }).join("");
+    async function openBrowseSelection(index) {
+      byId("primaryIndex").value = index;
+      await loadViewer("primary");
+      R.openAnalysisDrawer();
+    }
+    list.querySelectorAll(".browse-entry-row").forEach((row) => {
+      const open = R.protect("entries.open_result", async () => {
+        await openBrowseSelection(row.dataset.index);
+      }, { kind: "ui" });
+      row.addEventListener("click", open);
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    });
     const pageEnd = Math.min(state.offset + state.pageSize, state.total);
     byId("pageMeta").textContent = `${state.offset}-${Math.max(pageEnd - 1, state.offset)} of ${state.total}`;
     list.querySelectorAll(".pick-primary").forEach((button) => {
-      button.addEventListener("click", () => {
-        byId("primaryIndex").value = button.dataset.index;
-        loadViewer("primary");
-      });
+      button.addEventListener("click", R.protect("entries.pick_primary", async (event) => {
+        event.stopPropagation();
+        await openBrowseSelection(button.dataset.index);
+      }, { kind: "ui" }));
     });
     list.querySelectorAll(".pick-secondary").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
         byId("secondaryDataset").value = state.dataset;
         byId("secondaryLevel").value = state.level;
         byId("secondaryIndex").value = button.dataset.index;
@@ -89,7 +107,8 @@
       });
     });
     list.querySelectorAll(".save-entry-blueprint").forEach((button) => {
-      button.addEventListener("click", R.protect("blueprints.open_from_list", async () => {
+      button.addEventListener("click", R.protect("blueprints.open_from_list", async (event) => {
+        event.stopPropagation();
         const index = Number(button.dataset.index);
         const entry = await fetchJson(`/api/entry?dataset=${state.dataset}&n=${state.level}&index=${index}`);
         R.openBlueprintDialog(entry);
@@ -392,6 +411,10 @@
     state.offset = 0;
     if (resetIndex) {
       byId("primaryIndex").value = 0;
+    }
+    if (state.mode === "smallest") {
+      await Promise.all([R.loadAnalysis(), loadViewer("primary")]);
+      return;
     }
     await Promise.all([R.loadFilterBounds(), R.loadAnalysis()]);
     await loadEntries();

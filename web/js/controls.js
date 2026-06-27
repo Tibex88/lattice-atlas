@@ -47,6 +47,9 @@
       if (state.search.countMin) params.set("search_count_min", state.search.countMin);
       if (state.search.countMax) params.set("search_count_max", state.search.countMax);
       state.search.properties.forEach((value) => params.append("search_prop", value));
+    } else if (state.mode === "smallest") {
+      params.set("smallest_dataset", state.smallest.dataset);
+      state.smallest.properties.forEach((value) => params.append("smallest_prop", value));
     }
     const primaryIndex = byId("primaryIndex")?.value;
     if (primaryIndex && Number(primaryIndex) !== 0) params.set("primary_index", primaryIndex);
@@ -72,7 +75,7 @@
     const level = params.get("n");
     if (level) state.level = Number(level);
     const mode = params.get("mode");
-    if (mode === "search") state.mode = "search";
+    if (mode === "search" || mode === "smallest") state.mode = mode;
     const pageSize = params.get("page_size");
     if (pageSize) state.pageSize = Number(pageSize);
     const offset = params.get("offset");
@@ -101,6 +104,10 @@
       countMax: params.get("search_count_max") || "",
       properties: params.getAll("search_prop"),
     };
+    state.smallest = {
+      dataset: params.get("smallest_dataset") || state.dataset,
+      properties: params.getAll("smallest_prop"),
+    };
     return {
       primaryIndex: params.get("primary_index") || "0",
       secondaryDataset: params.get("secondary_dataset") || "reslat",
@@ -123,7 +130,7 @@
     document.querySelectorAll(".property-check").forEach((input) => {
       input.checked = filters.properties.includes(input.value);
     });
-    byId("countFilterRow").style.display = activeDataset() === "extlat" ? "grid" : "none";
+    byId("countFilterRow").style.display = state.mode !== "smallest" && activeDataset() === "extlat" ? "grid" : "none";
     updateDoubleSlider("Width");
     updateDoubleSlider("Height");
   }
@@ -169,13 +176,16 @@
       if (widthChanged) bits.push(`w ${filters.widthMin || "min"}-${filters.widthMax || "max"}`);
       if (heightChanged) bits.push(`h ${filters.heightMin || "min"}-${filters.heightMax || "max"}`);
     }
-    if (activeDataset() === "extlat" && (filters.countMin || filters.countMax)) {
+    if (state.mode !== "smallest" && activeDataset() === "extlat" && (filters.countMin || filters.countMax)) {
       bits.push(`count ${filters.countMin || "min"}-${filters.countMax || "max"}`);
     }
     if (filters.properties.length) bits.push(`${filters.properties.length} properties`);
     if (state.mode === "search") {
       bits.push(`${state.search.dataset} n=${state.search.nMin}-${state.search.nMax}`);
       bits.push(`top ${state.search.limit}`);
+    } else if (state.mode === "smallest") {
+      bits.push(state.smallest.dataset);
+      bits.push("least-size witness");
     } else {
       bits.push(`${state.dataset}${state.level}`);
     }
@@ -184,12 +194,14 @@
 
   function syncFilterStateFromInputs() {
     const filters = activeFilterState();
-    filters.widthMin = byId("filterWidthMin").value.trim();
-    filters.widthMax = byId("filterWidthMax").value.trim();
-    filters.heightMin = byId("filterHeightMin").value.trim();
-    filters.heightMax = byId("filterHeightMax").value.trim();
-    filters.countMin = byId("filterCountMin").value.trim();
-    filters.countMax = byId("filterCountMax").value.trim();
+    if (state.mode !== "smallest") {
+      filters.widthMin = byId("filterWidthMin").value.trim();
+      filters.widthMax = byId("filterWidthMax").value.trim();
+      filters.heightMin = byId("filterHeightMin").value.trim();
+      filters.heightMax = byId("filterHeightMax").value.trim();
+      filters.countMin = byId("filterCountMin").value.trim();
+      filters.countMax = byId("filterCountMax").value.trim();
+    }
     filters.properties = [...document.querySelectorAll(".property-check:checked")].map((input) => input.value);
   }
 
@@ -208,12 +220,14 @@
     document.querySelectorAll(".property-check").forEach((input) => {
       input.checked = false;
     });
-    filters.widthMin = bounds ? String(bounds.width_min) : "";
-    filters.widthMax = bounds ? String(bounds.width_max) : "";
-    filters.heightMin = bounds ? String(bounds.height_min) : "";
-    filters.heightMax = bounds ? String(bounds.height_max) : "";
-    filters.countMin = "";
-    filters.countMax = "";
+    if (state.mode !== "smallest") {
+      filters.widthMin = bounds ? String(bounds.width_min) : "";
+      filters.widthMax = bounds ? String(bounds.width_max) : "";
+      filters.heightMin = bounds ? String(bounds.height_min) : "";
+      filters.heightMax = bounds ? String(bounds.height_max) : "";
+      filters.countMin = "";
+      filters.countMax = "";
+    }
     filters.properties = [];
     updateDoubleSlider("Width");
     updateDoubleSlider("Height");
@@ -223,7 +237,7 @@
   function renderPropertyFilters(payload) {
     state.propertyOptions = payload.properties;
     const filters = activeFilterState();
-    byId("countFilterRow").style.display = activeDataset() === "extlat" ? "grid" : "none";
+    byId("countFilterRow").style.display = state.mode !== "smallest" && activeDataset() === "extlat" ? "grid" : "none";
     byId("propertyFilters").innerHTML = payload.properties.map((prop) => `
       <label class="property-item">
         <input class="property-check" type="checkbox" value="${prop.key}" ${filters.properties.includes(prop.key) ? "checked" : ""}>
@@ -322,6 +336,11 @@
   }
 
   async function loadFilterBounds() {
+    if (state.mode === "smallest") {
+      state.searchFilterBounds = null;
+      renderConstraintSummary();
+      return null;
+    }
     return loading.run("controls", "Loading filter bounds...", async () => {
       const nextBounds = state.mode === "search"
         ? await aggregateSearchBounds()

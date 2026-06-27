@@ -44,6 +44,10 @@ const state = {
     countMax: "",
     properties: [],
   },
+  smallest: {
+    dataset: "reslat",
+    properties: [],
+  },
 };
 
 const byId = (id) => document.getElementById(id);
@@ -276,6 +280,38 @@ function closeDialog(dialog) {
   dialog.removeAttribute("open");
 }
 
+function openAnalysisDrawer() {
+  const drawer = byId("analysisDrawer");
+  if (!drawer) {
+    return;
+  }
+  document.body.classList.add("analysis-drawer-open");
+  drawer.classList.add("is-open");
+  drawer.setAttribute("aria-hidden", "false");
+}
+
+function closeAnalysisDrawer() {
+  const drawer = byId("analysisDrawer");
+  if (!drawer) {
+    return;
+  }
+  document.body.classList.remove("analysis-drawer-open");
+  drawer.classList.remove("is-open");
+  drawer.setAttribute("aria-hidden", "true");
+}
+
+function wireAnalysisDrawer() {
+  const close = byId("closeAnalysisDrawer");
+  const backdrop = byId("analysisDrawerBackdrop");
+  close?.addEventListener("click", closeAnalysisDrawer);
+  backdrop?.addEventListener("click", closeAnalysisDrawer);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAnalysisDrawer();
+    }
+  });
+}
+
 const LoadingHub = (() => {
   let instance;
 
@@ -301,7 +337,6 @@ const LoadingHub = (() => {
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
         secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
         family: { element: byId("familyShell"), disable: "button, input, select" },
-        blueprints: { element: byId("blueprintsPanel"), disable: "button, input, select, textarea" },
       };
       const config = configs[name];
       if (!config?.element) {
@@ -390,15 +425,33 @@ const LoadingHub = (() => {
 const loading = LoadingHub.get();
 
 function activeFilterState() {
-  return state.mode === "search" ? state.search : state.filters;
+  if (state.mode === "search") {
+    return state.search;
+  }
+  if (state.mode === "smallest") {
+    return state.smallest;
+  }
+  return state.filters;
 }
 
 function activeFilterBounds() {
-  return state.mode === "search" ? state.searchFilterBounds : state.filterBounds;
+  if (state.mode === "search") {
+    return state.searchFilterBounds;
+  }
+  if (state.mode === "smallest") {
+    return null;
+  }
+  return state.filterBounds;
 }
 
 function activeDataset() {
-  return state.mode === "search" ? state.search.dataset : state.dataset;
+  if (state.mode === "search") {
+    return state.search.dataset;
+  }
+  if (state.mode === "smallest") {
+    return state.smallest.dataset;
+  }
+  return state.dataset;
 }
 
 async function fetchJson(url, options = {}) {
@@ -574,6 +627,9 @@ Object.assign(Residuals, {
   protect,
   openDialog,
   closeDialog,
+  openAnalysisDrawer,
+  closeAnalysisDrawer,
+  wireAnalysisDrawer,
   loading,
   activeFilterState,
   activeFilterBounds,
