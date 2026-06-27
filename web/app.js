@@ -23,6 +23,7 @@
     R.wireDoubleSlider("Width");
     R.wireDoubleSlider("Height");
     R.wireInfoButtons();
+    R.wireAnalysisDrawer();
     R.wireSummaryDialog();
     R.wireBlueprintDialog();
     R.wireBlueprintSearch();

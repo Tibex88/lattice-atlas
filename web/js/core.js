@@ -276,6 +276,38 @@ function closeDialog(dialog) {
   dialog.removeAttribute("open");
 }
 
+function openAnalysisDrawer() {
+  const drawer = byId("analysisDrawer");
+  if (!drawer) {
+    return;
+  }
+  document.body.classList.add("analysis-drawer-open");
+  drawer.classList.add("is-open");
+  drawer.setAttribute("aria-hidden", "false");
+}
+
+function closeAnalysisDrawer() {
+  const drawer = byId("analysisDrawer");
+  if (!drawer) {
+    return;
+  }
+  document.body.classList.remove("analysis-drawer-open");
+  drawer.classList.remove("is-open");
+  drawer.setAttribute("aria-hidden", "true");
+}
+
+function wireAnalysisDrawer() {
+  const close = byId("closeAnalysisDrawer");
+  const backdrop = byId("analysisDrawerBackdrop");
+  close?.addEventListener("click", closeAnalysisDrawer);
+  backdrop?.addEventListener("click", closeAnalysisDrawer);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeAnalysisDrawer();
+    }
+  });
+}
+
 const LoadingHub = (() => {
   let instance;
 
@@ -574,6 +606,9 @@ Object.assign(Residuals, {
   protect,
   openDialog,
   closeDialog,
+  openAnalysisDrawer,
+  closeAnalysisDrawer,
+  wireAnalysisDrawer,
   loading,
   activeFilterState,
   activeFilterBounds,

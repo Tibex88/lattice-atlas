@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lattice Atlas Workbench</title>
     <link rel="icon" type="image/png" href="/image.png">
-    <link rel="stylesheet" href="/styles.css?v=20260626b">
+    <link rel="stylesheet" href="/styles.css?v=20260627a">
   </head>
   <body>
     <main class="app-shell">
@@ -156,13 +156,19 @@
             </div>
           </div>
         </section>
-        <section id="analysisShell" class="analysis-shell loading-region">
+        <div id="analysisDrawer" class="analysis-drawer" aria-hidden="true">
+          <button id="analysisDrawerBackdrop" class="analysis-drawer-backdrop" type="button" aria-label="Close analysis drawer"></button>
+          <div class="analysis-drawer-panel">
+            <section id="analysisShell" class="analysis-shell loading-region">
           <div class="analysis-head">
             <div>
               <h2>Analysis</h2>
               <p class="compare-note">Counts, ratios, distributions, and expansion rankings for the currently selected primary dataset and size.</p>
             </div>
-            <button class="info-button" type="button" data-info-title="Analysis" data-info-body="This area summarizes the currently selected size n. It combines overall counts, ratios, precomputed width/height distributions, and top extlat expansion counts so the browser is not just entry-by-entry inspection.">i</button>
+            <div class="analysis-head-actions">
+              <button class="info-button" type="button" data-info-title="Analysis" data-info-body="This area summarizes the currently selected size n. It combines overall counts, ratios, precomputed width/height distributions, and top extlat expansion counts so the browser is not just entry-by-entry inspection.">i</button>
+              <button id="closeAnalysisDrawer" class="ghost-button" type="button">Close</button>
+            </div>
           </div>
           <div id="metricCards" class="metric-cards"></div>
           <div class="analysis-grid">
@@ -227,7 +233,9 @@
             <div id="smallestPropertyFilters" class="property-list compact-property-list"></div>
             <div id="smallestResult"></div>
           </article>
-        </section>
+            </section>
+          </div>
+        </div>
         <div class="compare-header">
           <h2>Compare</h2>
           <div class="compare-note">Load one candidate into Primary, then use Secondary to test whether a competing shape is simpler, taller, wider, or structurally closer to what you want.</div>
@@ -353,13 +361,13 @@
         </div>
       </form>
     </dialog>
-    <script src="/js/core.js?v=20260626c"></script>
+    <script src="/js/core.js?v=20260627a"></script>
     <script src="/js/controls.js?v=20260626c"></script>
     <script src="/js/analysis.js?v=20260626c"></script>
     <script src="/js/viewers.js?v=20260626c"></script>
     <script src="/js/blueprints.js?v=20260626d"></script>
-    <script src="/js/search.js?v=20260626d"></script>
+    <script src="/js/search.js?v=20260627a"></script>
     <script src="/js/workbench.js?v=20260626e"></script>
-    <script src="/app.js?v=20260626d"></script>
+    <script src="/app.js?v=20260627a"></script>
   </body>
   </html>

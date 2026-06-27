@@ -194,7 +194,7 @@
       return;
     }
     box.innerHTML = payload.items.map((item) => `
-      <div class="blueprint-row">
+      <div class="blueprint-row search-result-row" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" role="button" tabindex="0">
         <div class="blueprint-main">
           <div class="blueprint-head">
             <strong>${item.dataset}${item.n} #${item.index}</strong>
@@ -217,18 +217,36 @@
         </div>
       </div>
     `).join("");
+    async function openSearchSelection(dataset, n, index) {
+      state.dataset = dataset;
+      state.level = Number(n);
+      byId("primaryIndex").value = index;
+      renderSearchSelectors();
+      await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
+      R.openAnalysisDrawer();
+      R.syncUrlState();
+    }
+    box.querySelectorAll(".search-result-row").forEach((row) => {
+      const open = R.protect("search.open_result", async () => {
+        await openSearchSelection(row.dataset.dataset, row.dataset.n, row.dataset.index);
+      }, { kind: "ui" });
+      row.addEventListener("click", open);
+      row.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          open();
+        }
+      });
+    });
     box.querySelectorAll(".search-primary").forEach((button) => {
-      button.addEventListener("click", R.protect("search.primary", async () => {
-        state.dataset = button.dataset.dataset;
-        state.level = Number(button.dataset.n);
-        byId("primaryIndex").value = button.dataset.index;
-        renderSearchSelectors();
-        await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
-        R.syncUrlState();
+      button.addEventListener("click", R.protect("search.primary", async (event) => {
+        event.stopPropagation();
+        await openSearchSelection(button.dataset.dataset, button.dataset.n, button.dataset.index);
       }, { kind: "ui" }));
     });
     box.querySelectorAll(".search-secondary").forEach((button) => {
-      button.addEventListener("click", R.protect("search.secondary", async () => {
+      button.addEventListener("click", R.protect("search.secondary", async (event) => {
+        event.stopPropagation();
         byId("secondaryDataset").value = button.dataset.dataset;
         byId("secondaryLevel").value = button.dataset.n;
         byId("secondaryIndex").value = button.dataset.index;
@@ -237,12 +255,14 @@
       }, { kind: "ui" }));
     });
     box.querySelectorAll(".search-save").forEach((button) => {
-      button.addEventListener("click", R.protect("search.save_result", async () => {
+      button.addEventListener("click", R.protect("search.save_result", async (event) => {
+        event.stopPropagation();
         const entry = await fetchJson(`/api/entry?dataset=${button.dataset.dataset}&n=${button.dataset.n}&index=${button.dataset.index}`);
         R.openBlueprintDialog(entry);
       }, { kind: "ui" }));
     });
     box.querySelectorAll(".why-qualified-shell").forEach((shell, index) => {
+      shell.addEventListener("click", (event) => event.stopPropagation());
       shell.addEventListener("toggle", R.protect("search.why_qualified", async () => {
         if (!shell.open) {
           return;
