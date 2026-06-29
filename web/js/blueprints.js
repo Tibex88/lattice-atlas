@@ -50,6 +50,33 @@
     renderStorageMetaInto(byId("storageMetaModal"));
   }
 
+  function refreshViewerActions() {
+    const shortlistButton = byId("shortlistPrimaryBlueprint");
+    const saveButton = byId("savePrimaryBlueprint");
+    const exportButton = byId("exportPrimaryJson");
+    const entry = state.primaryEntry;
+    if (saveButton) {
+      saveButton.disabled = !entry;
+    }
+    if (exportButton) {
+      exportButton.disabled = !entry;
+    }
+    if (!shortlistButton) {
+      return;
+    }
+    if (!entry) {
+      shortlistButton.disabled = true;
+      shortlistButton.classList.remove("is-active");
+      shortlistButton.textContent = "Shortlist";
+      return;
+    }
+    shortlistButton.disabled = false;
+    const saved = savedBlueprintMap().get(blueprintKey(entry));
+    const shortlisted = saved && (state.shortlistIds || []).includes(saved.id);
+    shortlistButton.classList.toggle("is-active", !!shortlisted);
+    shortlistButton.textContent = R.shortlistButtonLabel(!!shortlisted);
+  }
+
   function savedBlueprintMarkup() {
     const shortlist = new Set(state.shortlistIds || []);
     if (!state.savedBlueprints.length) {
@@ -68,9 +95,8 @@
           <div class="meta">updated ${escapeHtml(formatUtcStamp(item.updated_at))}</div>
         </div>
         <div class="entry-actions blueprint-actions">
-          <button class="pick-blueprint-primary" data-id="${item.id}" type="button">Primary</button>
-          <button class="pick-blueprint-secondary" data-id="${item.id}" type="button">Secondary</button>
-          <button class="ghost-button shortlist-blueprint ${shortlist.has(item.id) ? "is-active" : ""}" data-id="${item.id}" type="button">${shortlist.has(item.id) ? "Shortlisted" : "Shortlist"}</button>
+          <button class="pick-blueprint-open" data-id="${item.id}" type="button">Open</button>
+          <button class="ghost-button shortlist-blueprint ${shortlist.has(item.id) ? "is-active" : ""}" data-id="${item.id}" type="button">${R.shortlistButtonLabel(shortlist.has(item.id))}</button>
           <button class="ghost-button delete-blueprint" data-id="${item.id}" type="button">Delete</button>
         </div>
       </div>
@@ -81,7 +107,7 @@
     if (!list) {
       return;
     }
-    list.querySelectorAll(".pick-blueprint-primary").forEach((button) => {
+    list.querySelectorAll(".pick-blueprint-open").forEach((button) => {
       button.addEventListener("click", async () => {
         const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
         if (!item) {
@@ -94,18 +120,6 @@
         await R.fetchPropertyFilters();
         await R.syncPrimaryContext({ resetIndex: false });
         R.openAnalysisDrawer();
-      });
-    });
-    list.querySelectorAll(".pick-blueprint-secondary").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
-        if (!item) {
-          return;
-        }
-        byId("secondaryDataset").value = item.dataset;
-        byId("secondaryLevel").value = item.n;
-        byId("secondaryIndex").value = item.index;
-        await R.loadViewer("secondary");
       });
     });
     list.querySelectorAll(".shortlist-blueprint").forEach((button) => {
@@ -130,6 +144,7 @@
       list.innerHTML = markup;
       wireSavedBlueprintActions(list);
     });
+    refreshViewerActions();
   }
 
   async function loadStorageStatus() {
@@ -212,6 +227,37 @@
     });
   }
 
+  async function ensureBlueprintSaved(entry, { title = "", notes = "", tags = [] } = {}) {
+    const existing = savedBlueprintMap().get(blueprintKey(entry));
+    if (existing) {
+      return existing;
+    }
+    await fetchJson("/api/blueprints", {
+      method: "POST",
+      body: {
+        dataset: entry.dataset,
+        n: entry.n,
+        index: entry.index,
+        title,
+        notes,
+        tags,
+      },
+    });
+    await Promise.all([loadStorageStatus(), loadSavedBlueprints()]);
+    return savedBlueprintMap().get(blueprintKey(entry));
+  }
+
+  async function toggleShortlistForEntry(entry) {
+    return loading.run("blueprints", "Updating shortlist...", async () => {
+      const saved = await ensureBlueprintSaved(entry);
+      if (!saved) {
+        throw new R.AppError("Could not save blueprint for shortlist.", { kind: "ui" });
+      }
+      R.toggleShortlist(saved.id);
+      return saved;
+    });
+  }
+
   function wireBlueprintDialog() {
     const dialog = byId("blueprintDialog");
     byId("closeBlueprintDialog").addEventListener("click", closeBlueprintDialog);
@@ -244,8 +290,11 @@
     blueprintKey,
     savedBlueprintMap,
     renderSavedBlueprints,
+    refreshViewerActions,
     loadStorageStatus,
     loadSavedBlueprints,
+    ensureBlueprintSaved,
+    toggleShortlistForEntry,
     openBlueprintDialog,
     wireBlueprintDialog,
     wireSavedBlueprintsDialog,

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lattice Atlas Workbench</title>
     <link rel="icon" type="image/png" href="/image.png">
-    <link rel="stylesheet" href="/styles.css?v=20260627b">
+    <link rel="stylesheet" href="/styles.css?v=20260628c">
   </head>
   <body class="workbench-page">
     <main class="app-shell">
@@ -25,22 +25,25 @@
             <label id="searchDatasetRow">Dataset
               <select id="searchDataset"></select>
             </label>
-            <label id="searchNMinRow"><span id="searchNMinLabel">n min</span>
+            <label id="searchNMinRow"><span id="searchNMinLabel">Structure Size (n)</span>
               <select id="searchNMin"></select>
             </label>
-            <label id="searchNMaxRow">n max
+            <label id="searchNMaxRow">Structure Size Max (n)
               <select id="searchNMax"></select>
             </label>
           </div>
-          <label id="pageSizeRow">Show
-            <select id="pageSize">
-              <option>10</option>
-              <option>25</option>
-              <option selected>50</option>
-              <option>100</option>
-              <option>200</option>
-            </select>
-          </label>
+          <div id="searchSizeSliderGroup" class="slider-group" hidden>
+            <div class="slider-head">
+              <span>Structure Size (n)</span>
+              <span id="searchSizeRangeLabel" class="slider-value"></span>
+            </div>
+            <div class="double-slider" id="searchSizeSlider">
+              <div class="slider-track"></div>
+              <div id="searchSizeSliderActive" class="slider-range"></div>
+              <input id="searchSizeMin" type="range" min="1" max="12" step="1" value="1">
+              <input id="searchSizeMax" type="range" min="1" max="12" step="1" value="12">
+            </div>
+          </div>
           <div id="widthSliderGroup" class="slider-group">
             <div class="slider-head">
               <span>Width</span>
@@ -65,6 +68,15 @@
               <input id="filterHeightMax" type="range" min="1" max="12" step="1" value="12">
             </div>
           </div>
+          <label id="pageSizeRow">Show
+            <select id="pageSize">
+              <option>10</option>
+              <option>25</option>
+              <option selected>50</option>
+              <option>100</option>
+              <option>200</option>
+            </select>
+          </label>
           <div id="countFilterRow" class="filter-grid">
             <label>Count min
               <input id="filterCountMin" type="number" min="0" step="1">
@@ -78,7 +90,25 @@
               <h3>Properties</h3>
               <button id="propertyFiltersInfo" class="info-button" type="button" data-info-title="Property Filters" data-info-body="These checkboxes come from the lattice and residuated-lattice property definitions in the codebase. Matching is computed directly from the selected dataset, not from hardcoded tables.">i</button>
             </div>
-            <div id="propertyFilters" class="property-list"></div>
+            <button id="propertyFiltersTrigger" class="property-popover-trigger ghost-button" type="button" aria-expanded="false" aria-controls="propertyFiltersPopover">
+              <span class="property-popover-label">Any property</span>
+              <span class="property-popover-meta">0 selected</span>
+            </button>
+            <div id="propertyFiltersPopover" class="property-popover" hidden>
+              <div class="property-popover-card">
+                <div class="property-popover-head">
+                  <div>
+                    <h4>Select Properties</h4>
+                    <div class="meta">Choose one or more property constraints.</div>
+                  </div>
+                  <button id="propertyFiltersClose" class="ghost-button" type="button">Close</button>
+                </div>
+                <div id="propertyFilters" class="property-list property-popover-list"></div>
+                <div class="property-popover-actions">
+                  <button id="propertyFiltersConfirm" type="button">Confirm</button>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="filter-actions">
             <button id="applyFilters" type="button">Apply Filters</button>
@@ -106,6 +136,7 @@
             <h1>Blueprint Workbench</h1>
           </div>
         </section>
+        <div id="metricCards" class="metric-cards"></div>
         <section id="entriesPanel" class="panel loading-region workspace-results">
           <div class="panel-title">
             <div>
@@ -115,7 +146,7 @@
             <div id="entriesToolbar" class="appendix-toolbar">
               <button id="exportListCsv" class="ghost-button" type="button">Export List CSV</button>
               <button id="exportListJson" class="ghost-button" type="button">Export List JSON</button>
-              <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Open loads it into the primary pane. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
+              <button class="info-button" type="button" data-info-title="Entries" data-info-body="Each row is one stored item. Select a row to inspect it in the drawer. lat and reslat entries are encoded structures; extlat entries are base lattices paired with a count of expansions.">i</button>
             </div>
           </div>
           <div id="entryList" class="entry-list"></div>
@@ -124,11 +155,10 @@
           <div class="analysis-head">
             <div>
               <h2>Analysis</h2>
-              <p class="compare-note">Counts, ratios, distributions, and expansion rankings for the currently selected primary dataset and size.</p>
+              <p class="compare-note">Counts, ratios, distributions, and expansion rankings for the currently selected dataset and size.</p>
             </div>
             <button class="info-button" type="button" data-info-title="Analysis" data-info-body="This area summarizes the currently selected size n. It combines overall counts, ratios, precomputed width/height distributions, and top extlat expansion counts so the browser is not just entry-by-entry inspection.">i</button>
           </div>
-          <div id="metricCards" class="metric-cards"></div>
           <div class="analysis-grid">
             <article class="panel analysis-panel">
               <div class="panel-title">
@@ -192,14 +222,20 @@
             <div id="smallestResult"></div>
           </article>
         </section>
+        <div id="viewerStateFields" hidden>
+          <select id="dataset"></select>
+          <select id="level"></select>
+          <input id="primaryIndex" type="number" min="0" step="1">
+          <button id="loadPrimary" type="button">Load</button>
+        </div>
         <div id="analysisDrawer" class="analysis-drawer" aria-hidden="true">
           <button id="analysisDrawerBackdrop" class="analysis-drawer-backdrop" type="button" aria-label="Close analysis drawer"></button>
           <div class="analysis-drawer-panel">
             <section class="detail-shell">
               <div class="compare-header">
                 <div>
-                  <h2>Selected Shapes</h2>
-                  <div class="compare-note">Inspect the selected structure, then compare it against a second candidate without leaving the search flow.</div>
+                  <h2>Selected Structure</h2>
+                  <div class="compare-note">Inspect the selected structure here. Multi-structure comparison now lives in the compare tray.</div>
                 </div>
                 <button id="closeAnalysisDrawer" class="ghost-button" type="button">Close</button>
               </div>
@@ -207,48 +243,16 @@
                 <article id="primaryCard" class="viewer-card loading-region">
             <div class="viewer-top">
               <div class="viewer-title">
-                <h3>Primary</h3>
-                <button class="info-button" type="button" data-info-title="Primary Pane" data-info-body="This pane shows the main entry you are browsing. Dataset family and size n come from Controls. Use the index here to load a specific item. The graph is the lattice Hasse diagram, and the tables below show the decoded order matrix and, for reslat, the multiplication table.">i</button>
+                <h3>Structure</h3>
+                <button class="info-button" type="button" data-info-title="Structure Viewer" data-info-body="This panel shows the entry you are currently inspecting. Dataset family and size n come from Controls. Use the index here to load a specific item. The graph is the lattice Hasse diagram, and the tables below show the decoded order matrix and, for reslat, the multiplication table.">i</button>
               </div>
-            </div>
-            <div class="viewer-controls viewer-controls-primary">
-              <label>Dataset
-                <select id="dataset"></select>
-              </label>
-              <label>Size n
-                <select id="level"></select>
-              </label>
-              <label>Index
-                <input id="primaryIndex" type="number" min="0" step="1">
-              </label>
-              <button id="loadPrimary">Load</button>
-              <button id="savePrimaryBlueprint" class="ghost-button" type="button">Save</button>
-              <button id="exportPrimaryJson" class="ghost-button" type="button">Export</button>
+              <div class="viewer-toolbar">
+                <button id="shortlistPrimaryBlueprint" class="ghost-button" type="button">Shortlist</button>
+                <button id="savePrimaryBlueprint" class="ghost-button" type="button">Save</button>
+                <button id="exportPrimaryJson" class="ghost-button" type="button">Export</button>
+              </div>
             </div>
             <div id="primaryView" class="viewer-body"></div>
-                </article>
-                <article id="secondaryCard" class="viewer-card loading-region">
-            <div class="viewer-top">
-              <div class="viewer-title">
-                <h3>Secondary</h3>
-                <button class="info-button" type="button" data-info-title="Secondary Pane" data-info-body="Use this pane for side-by-side comparison. You can switch to a different dataset family, a different size n, or a different index to compare structure, counts, or multiplication tables.">i</button>
-              </div>
-            </div>
-            <div class="viewer-controls viewer-controls-secondary">
-              <label>Dataset
-                <select id="secondaryDataset"></select>
-              </label>
-              <label>Size n
-                <select id="secondaryLevel"></select>
-              </label>
-              <label>Index
-                <input id="secondaryIndex" type="number" min="0" step="1">
-              </label>
-              <button id="loadSecondary">Load</button>
-              <button id="saveSecondaryBlueprint" class="ghost-button" type="button">Save</button>
-              <button id="exportSecondaryJson" class="ghost-button" type="button">Export</button>
-            </div>
-            <div id="secondaryView" class="viewer-body"></div>
                 </article>
               </div>
               <section id="familyShell" class="panel analysis-panel loading-region" hidden>
@@ -274,13 +278,6 @@
                   <div id="counterGapPanel"></div>
                 </article>
               </section>
-              <section id="shortlistShell" class="panel analysis-panel loading-region">
-                <div class="panel-title">
-                  <h3>Shortlist Compare</h3>
-                  <button class="info-button" type="button" data-info-title="Shortlist Compare" data-info-body="Pin saved blueprints into a shortlist, then compare their dimensions and property overlap side by side before deciding which shapes to keep.">i</button>
-                </div>
-                <div id="shortlistPanel"></div>
-              </section>
             </section>
           </div>
         </div>
@@ -295,17 +292,34 @@
         <div id="infoDialogBody" class="info-dialog-body"></div>
       </div>
     </dialog>
-    <button id="blueprintsFab" class="summary-fab blueprints-fab" type="button" aria-label="Open saved blueprints">B</button>
+    <button id="blueprintsFab" class="summary-fab blueprints-fab" type="button" aria-label="Open saved blueprints">
+      <img class="fab-icon" src="/save.svg" alt="" aria-hidden="true">
+    </button>
     <dialog id="blueprintsDialog" class="info-dialog">
       <div class="info-dialog-card summary-dialog-card">
         <div class="info-dialog-head">
           <h3>Saved Blueprints</h3>
           <button id="closeBlueprintsDialog" class="ghost-button" type="button">Close</button>
         </div>
-        <p class="meta">Review saved candidate structures, reopen them into compare panes, shortlist them, or delete them.</p>
+        <p class="meta">Review saved candidate structures, reopen them into the viewer, add them to the compare tray, or delete them.</p>
         <div id="blueprintsDialogShell" class="summary-popup loading-region">
           <div id="storageMetaModal" class="meta">Local storage inactive.</div>
           <div id="blueprintListModal" class="entry-list"></div>
+        </div>
+      </div>
+    </dialog>
+    <button id="shortlistFab" class="summary-fab shortlist-fab" type="button" aria-label="Open compare tray">
+      <img class="fab-icon" src="/comparison.svg" alt="" aria-hidden="true">
+    </button>
+    <dialog id="shortlistDialog" class="info-dialog">
+      <div class="info-dialog-card compare-dialog-card">
+        <div class="info-dialog-head">
+          <h3>Compare Tray</h3>
+          <button id="closeShortlistDialog" class="ghost-button" type="button">Close</button>
+        </div>
+        <p class="meta">Shortlist up to three saved structures, then inspect the full viewer content side by side in one place.</p>
+        <div id="shortlistDialogShell" class="summary-popup compare-popup loading-region">
+          <div id="shortlistPanel"></div>
         </div>
       </div>
     </dialog>
@@ -341,13 +355,13 @@
         </div>
       </form>
     </dialog>
-    <script src="/js/core.js?v=20260627a"></script>
-    <script src="/js/controls.js?v=20260626c"></script>
+    <script src="/js/core.js?v=20260628c"></script>
+    <script src="/js/controls.js?v=20260628c"></script>
     <script src="/js/analysis.js?v=20260626c"></script>
-    <script src="/js/viewers.js?v=20260626c"></script>
-    <script src="/js/blueprints.js?v=20260626d"></script>
-    <script src="/js/search.js?v=20260627a"></script>
-    <script src="/js/workbench.js?v=20260626e"></script>
-    <script src="/app.js?v=20260627a"></script>
+    <script src="/js/viewers.js?v=20260628c"></script>
+    <script src="/js/blueprints.js?v=20260628c"></script>
+    <script src="/js/search.js?v=20260628c"></script>
+    <script src="/js/workbench.js?v=20260628c"></script>
+    <script src="/app.js?v=20260628c"></script>
   </body>
   </html>

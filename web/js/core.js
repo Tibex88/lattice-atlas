@@ -13,7 +13,6 @@ const state = {
   cooccurrenceData: null,
   currentEntries: [],
   primaryEntry: null,
-  secondaryEntry: null,
   savedBlueprints: [],
   shortlistIds: [],
   storageStatus: null,
@@ -331,11 +330,10 @@ const LoadingHub = (() => {
         analysis: { element: byId("analysisShell"), disable: "button, input, select" },
         appendix: { element: byId("appendixShell"), disable: "button, input, select" },
         smallest: { element: byId("smallestShell"), disable: "button, input, select" },
-        shortlist: { element: byId("shortlistShell"), disable: "button, input, select" },
+        shortlist: { element: byId("shortlistDialogShell"), disable: "button, input, select" },
         design: { element: byId("designReportShell"), disable: "button, input, select" },
         countergap: { element: byId("counterGapShell"), disable: "button, input, select" },
         primary: { element: byId("primaryCard"), disable: "button, input, select" },
-        secondary: { element: byId("secondaryCard"), disable: "button, input, select" },
         family: { element: byId("familyShell"), disable: "button, input, select" },
       };
       const config = configs[name];
@@ -460,7 +458,9 @@ async function fetchJson(url, options = {}) {
     candidates.push(`${window.location.protocol}//${window.location.hostname || "127.0.0.1"}:8000${url}`);
   }
   let lastError;
+  const attempted = [];
   for (const candidate of candidates) {
+    attempted.push(candidate);
     const started = performance.now();
     try {
       const requestOptions = {
@@ -512,6 +512,19 @@ async function fetchJson(url, options = {}) {
         message: lastError.message,
       });
     }
+  }
+  if (lastError?.cause?.message === "Failed to fetch" || lastError?.message === "Failed to fetch") {
+    throw new AppError(
+      "Could not reach the API server. Start the FastAPI app with `python3 app.py` and open `http://127.0.0.1:8000/workbench`.",
+      {
+        kind: "network",
+        context: {
+          url,
+          attempted,
+        },
+        cause: lastError.cause || lastError,
+      },
+    );
   }
   throw lastError;
 }
@@ -571,6 +584,10 @@ function downloadJson(filename, payload) {
 
 function distinct(values) {
   return [...new Set(values)];
+}
+
+function shortlistButtonLabel(active) {
+  return active ? "In Compare" : "Shortlist";
 }
 
 function wireInfoButtons(scope = document) {
@@ -641,6 +658,7 @@ Object.assign(Residuals, {
   downloadCsv,
   downloadJson,
   distinct,
+  shortlistButtonLabel,
   wireInfoButtons,
   wireSummaryDialog,
 });

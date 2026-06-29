@@ -50,11 +50,120 @@
       return;
     }
     state.search.dataset = byId("searchDataset").value;
-    state.search.nMin = Number(byId("searchNMin").value || 1);
-    state.search.nMax = Number(byId("searchNMax").value || state.search.nMin || 1);
+    if (state.mode === "search" || state.mode === "browse") {
+      state.search.nMin = Number(byId("searchSizeMin").value || 1);
+      state.search.nMax = Number(byId("searchSizeMax").value || state.search.nMin || 1);
+    } else {
+      state.search.nMin = Number(byId("searchNMin").value || 1);
+      state.search.nMax = Number(byId("searchNMax").value || state.search.nMin || 1);
+    }
     if (state.mode === "search") {
       state.search.limit = Number(byId("pageSize").value || 25);
     }
+  }
+
+  function updateSearchSizeSlider() {
+    const minInput = byId("searchSizeMin");
+    const maxInput = byId("searchSizeMax");
+    const active = byId("searchSizeSliderActive");
+    const label = byId("searchSizeRangeLabel");
+    if (!minInput || !maxInput || !active || !label) {
+      return;
+    }
+    const min = Number(minInput.min);
+    const max = Number(maxInput.max);
+    const currentMin = Number(minInput.value);
+    const currentMax = Number(maxInput.value);
+    const left = ((currentMin - min) / Math.max(max - min, 1)) * 100;
+    const right = ((currentMax - min) / Math.max(max - min, 1)) * 100;
+    active.style.left = `${left}%`;
+    active.style.width = `${Math.max(right - left, 0)}%`;
+    label.textContent = `${currentMin} to ${currentMax}`;
+  }
+
+  function renderSearchSizeSlider() {
+    const minInput = byId("searchSizeMin");
+    const maxInput = byId("searchSizeMax");
+    if (!minInput || !maxInput) {
+      return;
+    }
+    const sizes = availableSizes(state.search.dataset);
+    const min = sizes[0] || 1;
+    const max = sizes[sizes.length - 1] || min;
+    minInput.min = String(min);
+    minInput.max = String(max);
+    maxInput.min = String(min);
+    maxInput.max = String(max);
+    minInput.value = String(state.search.nMin);
+    maxInput.value = String(state.search.nMax);
+    updateSearchSizeSlider();
+  }
+
+  function wireSearchSizeSlider() {
+    const minInput = byId("searchSizeMin");
+    const maxInput = byId("searchSizeMax");
+    if (!minInput || !maxInput || minInput.dataset.wired === "1") {
+      return;
+    }
+    const normalize = (source) => {
+      if (state.mode === "browse") {
+        if (source === "min") {
+          maxInput.value = minInput.value;
+        } else {
+          minInput.value = maxInput.value;
+        }
+      }
+      if (Number(minInput.value) > Number(maxInput.value)) {
+        if (source === "min") {
+          maxInput.value = minInput.value;
+        } else {
+          minInput.value = maxInput.value;
+        }
+      }
+      updateSearchSizeSlider();
+    };
+    minInput.dataset.wired = "1";
+    maxInput.dataset.wired = "1";
+    minInput.addEventListener("input", () => normalize("min"));
+    maxInput.addEventListener("input", () => normalize("max"));
+    ["change", "mouseup", "touchend"].forEach((eventName) => {
+      minInput.addEventListener(eventName, R.protect(`search.size_slider_min.${eventName}`, async () => {
+        if (state.mode !== "search" && state.mode !== "browse") {
+          return;
+        }
+        syncSearchStateFromInputs();
+        if (state.mode === "browse") {
+          state.dataset = state.search.dataset;
+          state.level = state.search.nMin;
+          state.search.nMax = state.search.nMin;
+          renderSearchSelectors();
+          await R.syncPrimaryContext();
+          R.syncUrlState();
+          return;
+        }
+        await R.loadFilterBounds();
+        R.renderConstraintSummary();
+        R.syncUrlState();
+      }, { kind: "ui" }));
+      maxInput.addEventListener(eventName, R.protect(`search.size_slider_max.${eventName}`, async () => {
+        if (state.mode !== "search" && state.mode !== "browse") {
+          return;
+        }
+        syncSearchStateFromInputs();
+        if (state.mode === "browse") {
+          state.dataset = state.search.dataset;
+          state.level = state.search.nMax;
+          state.search.nMin = state.search.nMax;
+          renderSearchSelectors();
+          await R.syncPrimaryContext();
+          R.syncUrlState();
+          return;
+        }
+        await R.loadFilterBounds();
+        R.renderConstraintSummary();
+        R.syncUrlState();
+      }, { kind: "ui" }));
+    });
   }
 
   function renderSearchSelectors() {
@@ -74,6 +183,7 @@
       const sizes = availableSizes(state.search.dataset);
       byId("searchNMin").innerHTML = R.optionMarkup(sizes, state.search.nMin);
       byId("searchNMax").innerHTML = R.optionMarkup(sizes, state.search.nMax);
+      renderSearchSizeSlider();
     }
     if (byId("dataset")) {
       byId("dataset").value = state.dataset;
@@ -96,9 +206,10 @@
     scope.classList.toggle("browse-scope", browseMode);
     scope.classList.toggle("search-scope-mode", searchMode);
     byId("searchDatasetRow").style.display = "";
-    byId("searchNMaxRow").style.display = searchMode ? "" : "none";
-    byId("searchNMinRow").style.display = smallestMode ? "none" : "";
-    byId("searchNMinLabel").textContent = searchMode ? "n min" : "n";
+    byId("searchSizeSliderGroup").hidden = smallestMode;
+    byId("searchNMaxRow").style.display = "none";
+    byId("searchNMinRow").style.display = "none";
+    byId("searchNMinLabel").textContent = searchMode ? "Structure Size Min (n)" : "Structure Size (n)";
     byId("pageSizeRow").hidden = !searchMode && !browseMode;
     byId("widthSliderGroup").hidden = smallestMode;
     byId("heightSliderGroup").hidden = smallestMode;
@@ -219,8 +330,11 @@
       box.innerHTML = `<div class="empty">No candidate blueprints matched.</div>`;
       return;
     }
+    const shortlist = new Set(state.shortlistIds || []);
+    const savedMap = R.savedBlueprintMap ? R.savedBlueprintMap() : new Map();
     box.innerHTML = payload.items.map((item) => `
-      <div class="blueprint-row search-result-row" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" role="button" tabindex="0">
+      <div class="blueprint-row search-result-row has-preview" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" role="button" tabindex="0">
+        ${R.renderMiniDiagram ? R.renderMiniDiagram(item) : ""}
         <div class="blueprint-main">
           <div class="blueprint-head">
             <strong>${item.dataset}${item.n} #${item.index}</strong>
@@ -229,7 +343,7 @@
             ${item.count != null ? `<span class="pill">count ${item.count}</span>` : ""}
           </div>
           ${item.matched_properties?.length ? `<div class="tag-row">${item.matched_properties.map((label) => `<span class="tag-chip">${escapeHtml(label)}</span>`).join("")}</div>` : ""}
-          <div class="meta"><code>${item.encoding.slice(0, 24)}${item.encoding.length > 24 ? "..." : ""}</code></div>
+          ${item.encoding ? `<div class="meta"><code>${item.encoding.slice(0, 24)}${item.encoding.length > 24 ? "..." : ""}</code></div>` : ""}
           <div class="meta">${escapeHtml(item.explanation)}</div>
           <details class="why-qualified-shell" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}">
             <summary>Why qualified</summary>
@@ -237,8 +351,7 @@
           </details>
         </div>
         <div class="entry-actions blueprint-actions">
-          <button class="search-primary" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" type="button">Primary</button>
-          <button class="search-secondary" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" type="button">Secondary</button>
+          <button class="ghost-button search-shortlist ${(savedMap.get(R.blueprintKey(item)) && shortlist.has(savedMap.get(R.blueprintKey(item)).id)) ? "is-active" : ""}" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" type="button">${R.shortlistButtonLabel(savedMap.get(R.blueprintKey(item)) && shortlist.has(savedMap.get(R.blueprintKey(item)).id))}</button>
           <button class="ghost-button search-save" data-dataset="${item.dataset}" data-n="${item.n}" data-index="${item.index}" type="button">Save</button>
         </div>
       </div>
@@ -264,27 +377,20 @@
         }
       });
     });
-    box.querySelectorAll(".search-primary").forEach((button) => {
-      button.addEventListener("click", R.protect("search.primary", async (event) => {
-        event.stopPropagation();
-        await openSearchSelection(button.dataset.dataset, button.dataset.n, button.dataset.index);
-      }, { kind: "ui" }));
-    });
-    box.querySelectorAll(".search-secondary").forEach((button) => {
-      button.addEventListener("click", R.protect("search.secondary", async (event) => {
-        event.stopPropagation();
-        byId("secondaryDataset").value = button.dataset.dataset;
-        byId("secondaryLevel").value = button.dataset.n;
-        byId("secondaryIndex").value = button.dataset.index;
-        await R.loadViewer("secondary");
-        R.syncUrlState();
-      }, { kind: "ui" }));
-    });
     box.querySelectorAll(".search-save").forEach((button) => {
       button.addEventListener("click", R.protect("search.save_result", async (event) => {
         event.stopPropagation();
         const entry = await fetchJson(`/api/entry?dataset=${button.dataset.dataset}&n=${button.dataset.n}&index=${button.dataset.index}`);
         R.openBlueprintDialog(entry);
+      }, { kind: "ui" }));
+    });
+    box.querySelectorAll(".search-shortlist").forEach((button) => {
+      button.addEventListener("click", R.protect("search.shortlist_result", async (event) => {
+        event.stopPropagation();
+        const entry = await fetchJson(`/api/entry?dataset=${button.dataset.dataset}&n=${button.dataset.n}&index=${button.dataset.index}`);
+        await R.toggleShortlistForEntry(entry);
+        const refreshed = await fetchJson(`/api/blueprint-search?${searchQuery()}`);
+        renderSearchResults(refreshed);
       }, { kind: "ui" }));
     });
     box.querySelectorAll(".why-qualified-shell").forEach((shell, index) => {
@@ -352,6 +458,7 @@
     }
     renderSearchSelectors();
     renderModeUI();
+    wireSearchSizeSlider();
   }
 
   function wireBlueprintSearch() {

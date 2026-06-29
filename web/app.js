@@ -8,20 +8,17 @@
     const levels = Array.from({ length: 12 }, (_, i) => i + 1);
     const datasets = ["lat", "extlat", "reslat"];
     byId("dataset").innerHTML = R.optionMarkup(datasets, state.dataset);
-    byId("secondaryDataset").innerHTML = R.optionMarkup(datasets, restored.secondaryDataset);
     byId("level").innerHTML = R.optionMarkup(levels, state.level);
-    byId("secondaryLevel").innerHTML = R.optionMarkup(levels, restored.secondaryLevel);
     await Promise.all([R.loadSummary(), R.loadStorageStatus()]);
     await R.initializeBlueprintSearch();
     await R.fetchPropertyFilters();
     await R.loadFilterBounds();
     await Promise.all([R.loadResultsByMode(), R.loadAnalysis(), R.loadSavedBlueprints()]);
     byId("primaryIndex").value = restored.primaryIndex;
-    byId("secondaryIndex").value = restored.secondaryIndex;
-    await R.loadViewer("primary");
-    await R.loadViewer("secondary");
+    await R.loadViewer();
     R.wireDoubleSlider("Width");
     R.wireDoubleSlider("Height");
+    R.wirePropertyFilterPopover();
     R.wireInfoButtons();
     R.wireAnalysisDrawer();
     R.wireSummaryDialog();
@@ -51,8 +48,7 @@
 
     byId("exportListCsv").addEventListener("click", () => R.exportCurrentList("csv"));
     byId("exportListJson").addEventListener("click", () => R.exportCurrentList("json"));
-    byId("exportPrimaryJson").addEventListener("click", () => R.exportViewerEntry("primary"));
-    byId("exportSecondaryJson").addEventListener("click", () => R.exportViewerEntry("secondary"));
+    byId("exportPrimaryJson").addEventListener("click", () => R.exportViewerEntry());
     byId("exportAppendixProperties").addEventListener("click", R.exportAppendixProperties);
     byId("exportAppendixDimensions").addEventListener("click", R.exportAppendixDimensions);
     byId("exportCooccurrenceCsv").addEventListener("click", R.exportCooccurrenceCsv);
@@ -73,7 +69,7 @@
       R.renderSearchSelectors();
       if (state.mode === "search") {
         byId("primaryIndex").value = 0;
-        await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
+        await Promise.all([R.loadAnalysis(), R.loadViewer()]);
         R.syncUrlState();
         return;
       }
@@ -93,7 +89,7 @@
       R.renderSearchSelectors();
       if (state.mode === "search") {
         byId("primaryIndex").value = 0;
-        await Promise.all([R.loadAnalysis(), R.loadViewer("primary")]);
+        await Promise.all([R.loadAnalysis(), R.loadViewer()]);
         R.syncUrlState();
         return;
       }
@@ -125,6 +121,7 @@
         R.syncSearchStateFromInputs();
       }
       R.syncFilterStateFromInputs();
+      R.closePropertyFilterPopover?.();
       R.renderConstraintSummary();
       state.offset = 0;
       await R.loadResultsByMode();
@@ -141,6 +138,7 @@
         R.renderSearchSelectors();
         await R.fetchPropertyFilters();
       }
+      R.closePropertyFilterPopover?.();
       R.clearFilterInputs();
       state.offset = 0;
       if (state.mode === "smallest") {
@@ -169,42 +167,26 @@
     }, { kind: "ui" }));
 
     byId("loadPrimary").addEventListener("click", R.protect("viewer.load_primary", async () => {
-      await R.loadViewer("primary");
+      await R.loadViewer();
       R.openAnalysisDrawer();
     }, { kind: "ui" }));
-    byId("loadSecondary").addEventListener("click", R.protect("viewer.load_secondary", () => R.loadViewer("secondary"), { kind: "ui" }));
 
     byId("savePrimaryBlueprint").addEventListener("click", R.protect("blueprints.open_primary", async () => {
       if (!state.primaryEntry) {
-        await R.loadViewer("primary");
+        await R.loadViewer();
       }
       if (state.primaryEntry) {
         R.openBlueprintDialog(state.primaryEntry);
       }
     }, { kind: "ui" }));
 
-    byId("saveSecondaryBlueprint").addEventListener("click", R.protect("blueprints.open_secondary", async () => {
-      if (!state.secondaryEntry) {
-        await R.loadViewer("secondary");
+    byId("shortlistPrimaryBlueprint").addEventListener("click", R.protect("blueprints.shortlist_primary", async () => {
+      if (!state.primaryEntry) {
+        await R.loadViewer();
       }
-      if (state.secondaryEntry) {
-        R.openBlueprintDialog(state.secondaryEntry);
+      if (state.primaryEntry) {
+        await R.toggleShortlistForEntry(state.primaryEntry);
       }
-    }, { kind: "ui" }));
-
-    byId("secondaryDataset").addEventListener("change", R.protect("controls.secondary_dataset", async () => {
-      await R.syncSecondaryContext();
-      R.syncUrlState();
-    }, { kind: "ui" }));
-
-    byId("secondaryLevel").addEventListener("change", R.protect("controls.secondary_level", async () => {
-      await R.syncSecondaryContext();
-      R.syncUrlState();
-    }, { kind: "ui" }));
-
-    byId("secondaryIndex").addEventListener("change", R.protect("controls.secondary_index", async () => {
-      await R.syncSecondaryViewer();
-      R.syncUrlState();
     }, { kind: "ui" }));
 
     R.syncUrlState();

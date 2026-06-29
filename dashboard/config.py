@@ -9,7 +9,8 @@ ARTIFACTS = ROOT / "artifacts"
 CACHE = ARTIFACTS / "metadata-cache"
 SQLITE_DB = ARTIFACTS / "dashboard.sqlite3"
 WEB = ROOT / "web"
-CACHE_VERSION = 2
+CACHE_VERSION = 3
+METADATA_INDEX_VERSION = 1
 
 sys.path.insert(0, str(SRC))
 from prog import BoundedLattice, DataStore, ResiduatedLattice  # noqa: E402

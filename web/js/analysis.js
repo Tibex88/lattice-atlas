@@ -383,6 +383,7 @@
           input.checked = keys.includes(input.value);
         });
         R.syncFilterStateFromInputs();
+        R.updatePropertyFilterSummary();
         R.renderConstraintSummary();
         state.offset = 0;
         R.syncUrlState();
