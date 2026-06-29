@@ -45,6 +45,17 @@ class RuntimeFault(AppError):
         )
 
 
+class ServiceUnavailableError(AppError):
+    def __init__(self, message, *, details=None, public_message=None):
+        super().__init__(
+            message,
+            kind="runtime",
+            status=503,
+            public_message=public_message or message,
+            details=details,
+        )
+
+
 class AppLogger:
     _instance = None
 

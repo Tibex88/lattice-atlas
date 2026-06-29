@@ -32,12 +32,12 @@
     });
   }
 
-  function exportViewerEntry(target) {
-    const entry = target === "primary" ? state.primaryEntry : state.secondaryEntry;
+  function exportViewerEntry() {
+    const entry = state.primaryEntry;
     if (!entry) {
       return;
     }
-    downloadJson(`${target}-${entry.dataset}${entry.n}-${entry.index}.json`, entry);
+    downloadJson(`structure-${entry.dataset}${entry.n}-${entry.index}.json`, entry);
   }
 
   function renderEntryList(payload) {
@@ -57,16 +57,17 @@
       const extra = item.count != null ? `count ${item.count}` : "";
       const key = R.blueprintKey({ dataset: state.dataset, n: state.level, index: item.index });
       const saved = savedMap.get(key);
+      const shortlisted = saved && (state.shortlistIds || []).includes(saved.id);
       return `
-        <div class="entry-row browse-entry-row" data-index="${item.index}" role="button" tabindex="0">
+        <div class="entry-row browse-entry-row has-preview" data-index="${item.index}" role="button" tabindex="0">
+          ${renderMiniDiagram(item)}
           <div>
             <div><strong>#${item.index}</strong> ${extra} ${saved ? '<span class="saved-mark">Saved</span>' : ""}</div>
             <div class="meta">w=${item.width}, h=${item.height}</div>
             <div class="meta"><code>${item.encoding.slice(0, 24)}${item.encoding.length > 24 ? "..." : ""}</code></div>
           </div>
           <div class="entry-actions">
-            <button data-index="${item.index}" class="pick-primary">Primary</button>
-            <button data-index="${item.index}" class="pick-secondary">Secondary</button>
+            <button data-index="${item.index}" class="ghost-button shortlist-entry-blueprint ${shortlisted ? "is-active" : ""}" type="button">${R.shortlistButtonLabel(shortlisted)}</button>
             <button data-index="${item.index}" class="ghost-button save-entry-blueprint" type="button">Save</button>
           </div>
         </div>
@@ -91,27 +92,21 @@
     });
     const pageEnd = Math.min(state.offset + state.pageSize, state.total);
     byId("pageMeta").textContent = `${state.offset}-${Math.max(pageEnd - 1, state.offset)} of ${state.total}`;
-    list.querySelectorAll(".pick-primary").forEach((button) => {
-      button.addEventListener("click", R.protect("entries.pick_primary", async (event) => {
-        event.stopPropagation();
-        await openBrowseSelection(button.dataset.index);
-      }, { kind: "ui" }));
-    });
-    list.querySelectorAll(".pick-secondary").forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.stopPropagation();
-        byId("secondaryDataset").value = state.dataset;
-        byId("secondaryLevel").value = state.level;
-        byId("secondaryIndex").value = button.dataset.index;
-        loadViewer("secondary");
-      });
-    });
     list.querySelectorAll(".save-entry-blueprint").forEach((button) => {
       button.addEventListener("click", R.protect("blueprints.open_from_list", async (event) => {
         event.stopPropagation();
         const index = Number(button.dataset.index);
         const entry = await fetchJson(`/api/entry?dataset=${state.dataset}&n=${state.level}&index=${index}`);
         R.openBlueprintDialog(entry);
+      }, { kind: "ui" }));
+    });
+    list.querySelectorAll(".shortlist-entry-blueprint").forEach((button) => {
+      button.addEventListener("click", R.protect("blueprints.shortlist_from_list", async (event) => {
+        event.stopPropagation();
+        const index = Number(button.dataset.index);
+        const entry = await fetchJson(`/api/entry?dataset=${state.dataset}&n=${state.level}&index=${index}`);
+        await R.toggleShortlistForEntry(entry);
+        await loadEntries();
       }, { kind: "ui" }));
     });
   }
@@ -125,12 +120,15 @@
     return [...groups.entries()].sort((a, b) => a[0] - b[0]);
   }
 
-  function renderDiagram(entry) {
-    const width = 480;
-    const height = 320;
-    const paddingX = 48;
-    const paddingY = 34;
-    const groups = rankGroups(entry.levels);
+  function renderDiagramSvg(levels, edges, options = {}) {
+    const width = options.width || 480;
+    const height = options.height || 320;
+    const paddingX = options.paddingX || 48;
+    const paddingY = options.paddingY || 34;
+    const radius = options.radius || 16;
+    const fontSize = options.fontSize || 12;
+    const strokeWidth = options.strokeWidth || 2;
+    const groups = rankGroups(levels);
     const positions = new Map();
 
     groups.forEach(([_, nodes], rowIndex) => {
@@ -141,26 +139,55 @@
       });
     });
 
-    const edges = entry.edges.map(([a, b]) => {
+    const edgeMarkup = edges.map(([a, b]) => {
       const p1 = positions.get(a);
       const p2 = positions.get(b);
-      return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#7c6f5b" stroke-width="2" />`;
+      return `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#7c6f5b" stroke-width="${strokeWidth}" />`;
     }).join("");
 
     const nodes = [...positions.entries()].map(([node, pos]) => `
       <g>
-        <circle cx="${pos.x}" cy="${pos.y}" r="16" fill="#0f766e" />
-        <text x="${pos.x}" y="${pos.y + 5}" text-anchor="middle" fill="white" font-size="12" font-family="Georgia">${node}</text>
+        <circle cx="${pos.x}" cy="${pos.y}" r="${radius}" fill="#0f766e" />
+        <text x="${pos.x}" y="${pos.y + Math.max(4, fontSize * 0.4)}" text-anchor="middle" fill="white" font-size="${fontSize}" font-family="Georgia">${node}</text>
       </g>
     `).join("");
 
     return `
+      <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" aria-label="Hasse diagram">
+        <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
+        ${edgeMarkup}
+        ${nodes}
+      </svg>
+    `;
+  }
+
+  function renderDiagram(entry) {
+    return `
       <div class="diagram-wrap">
-        <svg viewBox="0 0 ${width} ${height}" width="100%" height="320" aria-label="Hasse diagram">
-          <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
-          ${edges}
-          ${nodes}
-        </svg>
+        ${renderDiagramSvg(entry.levels, entry.edges)}
+      </div>
+    `;
+  }
+
+  function renderMiniDiagram(item) {
+    const preview = item.preview || (item.edges && item.levels ? { edges: item.edges, levels: item.levels } : null);
+    if (!preview?.edges || !preview?.levels) {
+      return "";
+    }
+
+    return `
+      <div class="result-preview">
+        <div class="result-preview-frame">
+          ${renderDiagramSvg(preview.levels, preview.edges, {
+            width: 180,
+            height: 132,
+            paddingX: 20,
+            paddingY: 16,
+            radius: 8,
+            fontSize: 8,
+            strokeWidth: 1.5,
+          })}
+        </div>
       </div>
     `;
   }
@@ -168,13 +195,18 @@
   function renderMatrix(title, matrix) {
     const headers = matrix[0].map((_, i) => `<th>${i}</th>`).join("");
     const rows = matrix.map((row, i) => `<tr><th>${i}</th>${row.map((value) => `<td>${value}</td>`).join("")}</tr>`).join("");
-    return `<div><h4>${title}</h4><table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    return `
+      <div class="table-wrap">
+        <h4>${title}</h4>
+        <table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table>
+      </div>
+    `;
   }
 
   function renderNegationTable(negation) {
     const cells = negation.map((value, index) => `<tr><th>${index}</th><td>${value}</td></tr>`).join("");
     return `
-      <div>
+      <div class="table-wrap">
         <h4>Negation</h4>
         <table>
           <thead><tr><th>a</th><th>¬a</th></tr></thead>
@@ -237,18 +269,8 @@
     `;
   }
 
-  function renderDiffMatrix(title, matrix, reference) {
-    const headers = matrix[0].map((_, i) => `<th>${i}</th>`).join("");
-    const rows = matrix.map((row, i) => `<tr><th>${i}</th>${row.map((value, j) => {
-      const changed = reference && reference[i][j] !== value;
-      return `<td class="${changed ? "cell-diff" : ""}">${value}</td>`;
-    }).join("")}</tr>`).join("");
-    return `<div><h4>${title}</h4><table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
-  }
-
-  function renderViewer(target, entry) {
-    const box = byId(`${target}View`);
-    box.innerHTML = `
+  function renderViewerMarkup(entry) {
+    return `
       <div class="fact-row">
         <span class="pill">${entry.dataset}${entry.n}</span>
         <span class="pill">index ${entry.index}</span>
@@ -263,7 +285,7 @@
       </div>
       ${renderDerivedOperations(entry)}
       ${renderPropertyChecker(entry)}
-      <div>
+      <div class="encoding-block">
         <div class="inline-info-title">
           <h4>Encoding</h4>
           <button class="info-button" type="button" data-info-title="Encoding" data-info-body="Encoding is the raw compact byte representation of the stored structure, displayed in hexadecimal. For lat it encodes the lattice order, for reslat it encodes the lattice order plus the multiplication table, and for extlat it is the base lattice key used in the count dictionary.">i</button>
@@ -271,7 +293,22 @@
         <code>${entry.encoding}</code>
       </div>
     `;
+  }
+
+  function renderDiffMatrix(title, matrix, reference) {
+    const headers = matrix[0].map((_, i) => `<th>${i}</th>`).join("");
+    const rows = matrix.map((row, i) => `<tr><th>${i}</th>${row.map((value, j) => {
+      const changed = reference && reference[i][j] !== value;
+      return `<td class="${changed ? "cell-diff" : ""}">${value}</td>`;
+    }).join("")}</tr>`).join("");
+    return `<div><h4>${title}</h4><table><thead><tr><th></th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function renderViewer(target, entry) {
+    const box = byId(`${target}View`);
+    box.innerHTML = renderViewerMarkup(entry);
     R.wireInfoButtons(box);
+    R.refreshViewerActions?.();
   }
 
   function hideFamilyPanel() {
@@ -301,8 +338,7 @@
               <div class="meta">${status}</div>
             </div>
             <div class="family-actions">
-              <button class="ghost-button family-primary" data-index="${item.index}" type="button">Primary</button>
-              <button class="ghost-button family-secondary" data-index="${item.index}" type="button">Secondary</button>
+              <button class="ghost-button family-open" data-index="${item.index}" type="button">Open</button>
             </div>
           </div>
           ${renderDiffMatrix("Multiplication Table", item.mult_table, selectedEntry.mult_table)}
@@ -316,7 +352,7 @@
       </div>
       <div class="family-grid">${cards}</div>
     `;
-    panel.querySelectorAll(".family-primary").forEach((button) => {
+    panel.querySelectorAll(".family-open").forEach((button) => {
       button.addEventListener("click", async () => {
         state.dataset = "reslat";
         state.level = Number(payload.n);
@@ -324,14 +360,6 @@
         R.renderSearchSelectors();
         await R.fetchPropertyFilters();
         await syncPrimaryContext({ resetIndex: false });
-      });
-    });
-    panel.querySelectorAll(".family-secondary").forEach((button) => {
-      button.addEventListener("click", () => {
-        byId("secondaryDataset").value = "reslat";
-        byId("secondaryLevel").value = payload.n;
-        byId("secondaryIndex").value = button.dataset.index;
-        loadViewer("secondary");
       });
     });
   }
@@ -356,55 +384,39 @@
     });
   }
 
-  async function loadViewer(target) {
-    let dataset;
-    let level;
-    let index;
-    let boxId;
-    if (target === "primary") {
-      dataset = state.dataset;
-      level = state.level;
-      index = byId("primaryIndex").value || 0;
-      boxId = "primaryView";
-    } else {
-      dataset = byId("secondaryDataset").value;
-      level = byId("secondaryLevel").value;
-      index = byId("secondaryIndex").value || 0;
-      boxId = "secondaryView";
-    }
-    const region = target === "primary" ? "primary" : "secondary";
-    return loading.run(region, `Loading ${target} view...`, async () => {
+  async function loadViewer() {
+    const dataset = state.dataset;
+    const level = state.level;
+    const index = byId("primaryIndex").value || 0;
+    const boxId = "primaryView";
+    const result = await loading.run("primary", "Loading structure...", async () => {
       try {
         const entry = await fetchJson(`/api/entry?dataset=${dataset}&n=${level}&index=${index}`);
-        renderViewer(target, entry);
-        if (target === "primary") {
-          state.primaryEntry = entry;
-        } else {
-          state.secondaryEntry = entry;
-        }
-        if (target === "primary") {
-          await loadFamilyComparison(entry);
-          if (R.loadPrimaryWorkbench) {
-            await R.loadPrimaryWorkbench(entry);
-          }
+        state.primaryEntry = entry;
+        renderViewer("primary", entry);
+        await loadFamilyComparison(entry);
+        if (R.loadPrimaryWorkbench) {
+          await R.loadPrimaryWorkbench(entry);
         }
         R.syncUrlState();
+        return entry;
       } catch (error) {
         const appError = R.errors.handle(error, {
-          source: `viewer.${target}`,
+          source: "viewer.primary",
           kind: error.status === 404 ? "ui" : undefined,
           silent: error.status === 404,
-          target,
         });
         byId(boxId).innerHTML = `<div class="empty">${appError.message}</div>`;
-        if (target === "primary") {
-          hideFamilyPanel();
-          if (R.loadPrimaryWorkbench) {
-            await R.loadPrimaryWorkbench(null);
-          }
+        state.primaryEntry = null;
+        hideFamilyPanel();
+        if (R.loadPrimaryWorkbench) {
+          await R.loadPrimaryWorkbench(null);
         }
+        return null;
       }
     });
+    R.refreshViewerActions?.();
+    return result;
   }
 
   async function syncPrimaryContext({ resetIndex = true } = {}) {
@@ -413,34 +425,25 @@
       byId("primaryIndex").value = 0;
     }
     if (state.mode === "smallest") {
-      await Promise.all([R.loadAnalysis(), loadViewer("primary")]);
+      await Promise.all([R.loadAnalysis(), loadViewer()]);
       return;
     }
     await Promise.all([R.loadFilterBounds(), R.loadAnalysis()]);
     await loadEntries();
-    await loadViewer("primary");
-  }
-
-  async function syncSecondaryViewer() {
-    await loadViewer("secondary");
-  }
-
-  async function syncSecondaryContext() {
-    byId("secondaryIndex").value = 0;
-    await loadViewer("secondary");
+    await loadViewer();
   }
 
   Object.assign(R, {
     exportCurrentList,
     exportViewerEntry,
     renderEntryList,
+    renderMiniDiagram,
+    renderViewerMarkup,
     renderViewer,
     hideFamilyPanel,
     loadFamilyComparison,
     loadEntries,
     loadViewer,
     syncPrimaryContext,
-    syncSecondaryViewer,
-    syncSecondaryContext,
   });
 })();

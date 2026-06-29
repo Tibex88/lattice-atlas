@@ -6,13 +6,14 @@
     return R.distinct(state.summaryRows.map((row) => row.dataset)).sort();
   }
 
-  function shortlistSet() {
-    return new Set(state.shortlistIds);
-  }
-
   function normalizeShortlistIds() {
     const valid = new Set(state.savedBlueprints.map((item) => item.id));
-    state.shortlistIds = state.shortlistIds.filter((id) => valid.has(id)).slice(0, 4);
+    state.shortlistIds = state.shortlistIds.filter((id) => valid.has(id)).slice(0, 3);
+  }
+
+  function shortlistItems() {
+    const savedById = new Map(state.savedBlueprints.map((item) => [item.id, item]));
+    return state.shortlistIds.map((id) => savedById.get(id)).filter(Boolean);
   }
 
   function renderSmallestResult(payload) {
@@ -26,9 +27,12 @@
       return;
     }
     const entry = payload.entry;
+    const saved = R.savedBlueprintMap ? R.savedBlueprintMap().get(R.blueprintKey(entry)) : null;
+    const shortlisted = saved && (state.shortlistIds || []).includes(saved.id);
     byId("entryListMeta").textContent = `Smallest match: ${entry.dataset}${entry.n} #${entry.index}.`;
     panel.innerHTML = `
-      <div class="blueprint-row search-result-row smallest-result-row" data-dataset="${entry.dataset}" data-n="${entry.n}" data-index="${entry.index}" role="button" tabindex="0">
+      <div class="blueprint-row search-result-row smallest-result-row has-preview" data-dataset="${entry.dataset}" data-n="${entry.n}" data-index="${entry.index}" role="button" tabindex="0">
+        ${R.renderMiniDiagram ? R.renderMiniDiagram(entry) : ""}
         <div class="blueprint-main">
           <div class="blueprint-head">
             <strong>${entry.dataset}${entry.n} #${entry.index}</strong>
@@ -40,8 +44,7 @@
           <div class="meta">${escapeHtml(payload.explanation)}</div>
         </div>
         <div class="entry-actions blueprint-actions">
-          <button id="smallestPrimary" type="button">Primary</button>
-          <button id="smallestSecondary" type="button">Secondary</button>
+          <button id="smallestShortlist" class="ghost-button ${shortlisted ? "is-active" : ""}" type="button">${R.shortlistButtonLabel(shortlisted)}</button>
           <button id="smallestSave" class="ghost-button" type="button">Save</button>
         </div>
       </div>
@@ -62,21 +65,15 @@
         R.protect("smallest.open_result_keydown", openAsPrimary, { kind: "ui" })();
       }
     });
-    byId("smallestPrimary").addEventListener("click", R.protect("smallest.primary", async (event) => {
-      event.stopPropagation();
-      await openAsPrimary();
-    }, { kind: "ui" }));
-    byId("smallestSecondary").addEventListener("click", R.protect("smallest.secondary", async (event) => {
-      event.stopPropagation();
-      byId("secondaryDataset").value = entry.dataset;
-      byId("secondaryLevel").value = entry.n;
-      byId("secondaryIndex").value = entry.index;
-      await R.loadViewer("secondary");
-    }, { kind: "ui" }));
     byId("smallestSave").addEventListener("click", (event) => {
       event.stopPropagation();
       R.openBlueprintDialog(entry);
     });
+    byId("smallestShortlist").addEventListener("click", R.protect("smallest.shortlist", async (event) => {
+      event.stopPropagation();
+      await R.toggleShortlistForEntry(entry);
+      renderSmallestResult(payload);
+    }, { kind: "ui" }));
   }
 
   async function runSmallestExample() {
@@ -105,7 +102,7 @@
   function renderDesignReport(payload) {
     const panel = byId("designReportPanel");
     if (!payload) {
-      panel.innerHTML = `<div class="empty">No primary blueprint selected.</div>`;
+      panel.innerHTML = `<div class="empty">No structure selected.</div>`;
       return;
     }
     panel.innerHTML = `
@@ -176,46 +173,54 @@
   async function loadShortlistCompare() {
     normalizeShortlistIds();
     const panel = byId("shortlistPanel");
-    const selected = state.savedBlueprints.filter((item) => shortlistSet().has(item.id));
+    const selected = shortlistItems();
     if (!selected.length) {
-      panel.innerHTML = `<div class="empty">Use the Shortlist button on saved blueprints to compare candidate shapes here.</div>`;
+      panel.innerHTML = `<div class="empty">Use Shortlist on any result or saved blueprint to pin up to three structures for side-by-side comparison here.</div>`;
       return;
     }
     return loading.run("shortlist", "Comparing shortlisted blueprints...", async () => {
       const entries = await Promise.all(
         selected.map((item) => fetchJson(`/api/entry?dataset=${item.dataset}&n=${item.n}&index=${item.index}`)),
       );
-      const truePropertySets = entries.map((entry) => new Set(entry.property_items.filter((item) => item.value).map((item) => item.label)));
-      const common = [...truePropertySets.reduce((acc, current, index) => (
-        index === 0 ? new Set(current) : new Set([...acc].filter((value) => current.has(value)))
-      ), new Set())];
 
       panel.innerHTML = `
-        <div class="meta">Shortlist compares saved candidates by size, dimensions, and shared true properties.</div>
-        ${common.length ? `<div class="tag-row">${common.map((label) => `<span class="tag-chip">${escapeHtml(label)}</span>`).join("")}</div>` : `<div class="meta">No shared true-property core across the current shortlist.</div>`}
-        <div class="workbench-compare-grid">
-          ${selected.map((item, index) => {
-            const entry = entries[index];
-            const unique = entry.property_items.filter((prop) => prop.value && !common.includes(prop.label));
-            return `
-              <article class="workbench-card">
-                <div class="blueprint-head">
-                  <strong>${escapeHtml(item.title || `${item.dataset}${item.n} #${item.index}`)}</strong>
-                  <span class="pill">${item.dataset}${item.n}</span>
-                </div>
-                <div class="meta">index ${item.index} • w=${entry.width} • h=${entry.height}${entry.count != null ? ` • count ${entry.count}` : ""}</div>
-                ${unique.length ? `<div class="tag-row">${unique.slice(0, 8).map((prop) => `<span class="tag-chip">${escapeHtml(prop.label)}</span>`).join("")}</div>` : `<div class="meta">No unique true-property signal beyond the shared core.</div>`}
-                <div class="entry-actions">
-                  <button class="shortlist-primary" data-id="${item.id}" type="button">Primary</button>
-                  <button class="shortlist-secondary" data-id="${item.id}" type="button">Secondary</button>
-                  <button class="ghost-button shortlist-remove" data-id="${item.id}" type="button">Remove</button>
-                </div>
-              </article>
-            `;
-          }).join("")}
+        <div class="shortlist-compare-shell">
+          <div class="meta">Compare tray holds up to three saved structures. Each column mirrors the core viewer content so you can inspect shape, tables, properties, and encoding without leaving the workbench.</div>
+          <div class="shortlist-compare-grid">
+            ${selected.map((item, index) => {
+              const entry = entries[index];
+              const title = item.title || `${item.dataset}${item.n} #${item.index}`;
+              return `
+                <article class="shortlist-compare-card">
+                  <div class="shortlist-compare-head">
+                    <div class="blueprint-main">
+                      <div class="blueprint-head">
+                        <strong>${escapeHtml(title)}</strong>
+                        <span class="pill">${item.dataset}${item.n}</span>
+                      </div>
+                      <div class="meta">index ${item.index} • w=${entry.width} • h=${entry.height}${entry.count != null ? ` • count ${entry.count}` : ""}</div>
+                      ${(item.tags || []).length ? `<div class="tag-row">${item.tags.map((tag) => `<span class="tag-chip">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+                      <div class="shortlist-compare-preview">
+                        ${R.renderMiniDiagram ? R.renderMiniDiagram(entry) : ""}
+                      </div>
+                    </div>
+                    <div class="entry-actions shortlist-compare-actions">
+                      <button class="shortlist-open" data-id="${item.id}" type="button">Open</button>
+                      <button class="ghost-button shortlist-save" data-dataset="${entry.dataset}" data-n="${entry.n}" data-index="${entry.index}" type="button">Save</button>
+                      <button class="ghost-button shortlist-remove" data-id="${item.id}" type="button">Remove</button>
+                    </div>
+                  </div>
+                  <div class="shortlist-compare-scroll viewer-body">
+                    ${R.renderViewerMarkup(entry)}
+                  </div>
+                </article>
+              `;
+            }).join("")}
+          </div>
         </div>
       `;
-      panel.querySelectorAll(".shortlist-primary").forEach((button) => {
+      R.wireInfoButtons(panel);
+      panel.querySelectorAll(".shortlist-open").forEach((button) => {
         button.addEventListener("click", async () => {
           const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
           if (!item) return;
@@ -225,17 +230,14 @@
           R.renderSearchSelectors();
           await R.fetchPropertyFilters();
           await R.syncPrimaryContext({ resetIndex: false });
+          R.openAnalysisDrawer();
         });
       });
-      panel.querySelectorAll(".shortlist-secondary").forEach((button) => {
-        button.addEventListener("click", async () => {
-          const item = state.savedBlueprints.find((entry) => entry.id === Number(button.dataset.id));
-          if (!item) return;
-          byId("secondaryDataset").value = item.dataset;
-          byId("secondaryLevel").value = item.n;
-          byId("secondaryIndex").value = item.index;
-          await R.loadViewer("secondary");
-        });
+      panel.querySelectorAll(".shortlist-save").forEach((button) => {
+        button.addEventListener("click", R.protect("shortlist.save", async () => {
+          const entry = await fetchJson(`/api/entry?dataset=${button.dataset.dataset}&n=${button.dataset.n}&index=${button.dataset.index}`);
+          R.openBlueprintDialog(entry);
+        }, { kind: "ui" }));
       });
       panel.querySelectorAll(".shortlist-remove").forEach((button) => {
         button.addEventListener("click", () => {
@@ -252,12 +254,13 @@
       next.splice(index, 1);
     } else {
       next.push(id);
-      while (next.length > 4) {
+      while (next.length > 3) {
         next.shift();
       }
     }
     state.shortlistIds = next;
     R.renderSavedBlueprints();
+    R.refreshViewerActions?.();
     loadShortlistCompare();
   }
 
@@ -266,7 +269,23 @@
     await loadShortlistCompare();
   }
 
-  function wireWorkbench() {}
+  function wireShortlistDialog() {
+    const dialog = byId("shortlistDialog");
+    if (!dialog) {
+      return;
+    }
+    byId("shortlistFab")?.addEventListener("click", () => R.openDialog(dialog));
+    byId("closeShortlistDialog")?.addEventListener("click", () => R.closeDialog(dialog));
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) {
+        R.closeDialog(dialog);
+      }
+    });
+  }
+
+  function wireWorkbench() {
+    wireShortlistDialog();
+  }
 
   Object.assign(R, {
     initializeWorkbench,

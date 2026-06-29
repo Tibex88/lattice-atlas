@@ -98,6 +98,13 @@ def hasse_edges(lattice):
     return edges
 
 
+def preview_payload(structure, n):
+    return {
+        "edges": hasse_edges(structure),
+        "levels": [sum(1 for j in range(n) if structure.leq(j, i)) - 1 for i in range(n)],
+    }
+
+
 def dataset_path(dataset, n):
     return DATA / f"{dataset}{n}.db"
 
@@ -274,6 +281,7 @@ def decode_entry(dataset, n, index):
         mult_table = None
         arrow_table = None
         negation = None
+    preview = preview_payload(structure, n)
     values = property_values(dataset, structure)
     return {
         "dataset": dataset,
@@ -282,8 +290,8 @@ def decode_entry(dataset, n, index):
         "encoding": enc.hex(),
         "count": extra_count,
         "order_matrix": structure._leq,
-        "edges": hasse_edges(structure),
-        "levels": [sum(1 for j in range(n) if structure.leq(j, i)) - 1 for i in range(n)],
+        "edges": preview["edges"],
+        "levels": preview["levels"],
         "mult_table": mult_table,
         "arrow_table": arrow_table,
         "negation": negation,
@@ -291,6 +299,15 @@ def decode_entry(dataset, n, index):
         "height": structure.height(),
         "properties": values,
         "property_items": property_results(dataset, values),
+    }
+
+
+def search_result_details_from_encoding(dataset, n, encoding, count=None):
+    structure = decode_structure(dataset, n, encoding)
+    return {
+        "encoding": encoding.hex(),
+        "count": count,
+        "preview": preview_payload(structure, n),
     }
 
 
@@ -345,23 +362,27 @@ def property_filter_mask(dataset, filters):
 
 def build_metadata_row(dataset, n, index, enc, count):
     structure = decode_structure(dataset, n, enc)
+    preview = preview_payload(structure, n)
     return (
         index,
         enc.hex(),
         count,
         structure.width(),
         structure.height(),
+        preview,
     )
 
 
 def decode_page_item(dataset, n, index, enc, count):
     structure = decode_structure(dataset, n, enc)
+    preview = preview_payload(structure, n)
     return {
         "index": index,
         "encoding": enc.hex(),
         "count": count,
         "width": structure.width(),
         "height": structure.height(),
+        "preview": preview,
     }
 
 
@@ -456,7 +477,7 @@ def dataset_property_masks(dataset, n):
 
 
 def matches_metadata_row(row, filters):
-    _, _, count, width, height = row
+    _, _, count, width, height, *_rest = row
     if filters["width_min"] is not None and width < filters["width_min"]:
         return False
     if filters["width_max"] is not None and width > filters["width_max"]:
@@ -500,7 +521,8 @@ def query_items(dataset, n, filters, limit, offset):
             "count": count,
             "width": width,
             "height": height,
+            "preview": preview,
         }
-        for index, encoding, count, width, height in matched_rows[offset : offset + limit]
+        for index, encoding, count, width, height, preview in matched_rows[offset : offset + limit]
     ]
     return {"total": len(matched_rows), "items": page}

@@ -53,12 +53,6 @@
     }
     const primaryIndex = byId("primaryIndex")?.value;
     if (primaryIndex && Number(primaryIndex) !== 0) params.set("primary_index", primaryIndex);
-    const secondaryDataset = byId("secondaryDataset")?.value;
-    const secondaryLevel = byId("secondaryLevel")?.value;
-    const secondaryIndex = byId("secondaryIndex")?.value;
-    if (secondaryDataset && secondaryDataset !== "reslat") params.set("secondary_dataset", secondaryDataset);
-    if (secondaryLevel && Number(secondaryLevel) !== state.level) params.set("secondary_n", secondaryLevel);
-    if (secondaryIndex && Number(secondaryIndex) !== 0) params.set("secondary_index", secondaryIndex);
     return params;
   }
 
@@ -110,9 +104,6 @@
     };
     return {
       primaryIndex: params.get("primary_index") || "0",
-      secondaryDataset: params.get("secondary_dataset") || "reslat",
-      secondaryLevel: params.get("secondary_n") || String(state.level),
-      secondaryIndex: params.get("secondary_index") || "0",
     };
   }
 
@@ -130,6 +121,7 @@
     document.querySelectorAll(".property-check").forEach((input) => {
       input.checked = filters.properties.includes(input.value);
     });
+    updatePropertyFilterSummary();
     byId("countFilterRow").style.display = state.mode !== "smallest" && activeDataset() === "extlat" ? "grid" : "none";
     updateDoubleSlider("Width");
     updateDoubleSlider("Height");
@@ -229,6 +221,7 @@
       filters.countMax = "";
     }
     filters.properties = [];
+    updatePropertyFilterSummary();
     updateDoubleSlider("Width");
     updateDoubleSlider("Height");
     renderConstraintSummary();
@@ -244,6 +237,7 @@
         <span>${prop.label}</span>
       </label>
     `).join("");
+    updatePropertyFilterSummary();
     const infoButton = byId("propertyFiltersInfo");
     if (infoButton) {
       const definitions = payload.properties.map((prop) => `
@@ -260,6 +254,94 @@
         <div class="info-definition-list">${definitions}</div>
       `;
     }
+  }
+
+  function updatePropertyFilterSummary() {
+    const trigger = byId("propertyFiltersTrigger");
+    if (!trigger) {
+      return;
+    }
+    const filters = activeFilterState();
+    const count = filters.properties.length;
+    const labels = state.propertyOptions
+      .filter((prop) => filters.properties.includes(prop.key))
+      .map((prop) => prop.label);
+    const label = count === 0
+      ? "Any property"
+      : count === 1
+        ? labels[0] || "1 property"
+        : `${labels[0] || "Multiple"} +${count - 1}`;
+    const meta = count === 1 ? "1 selected" : `${count} selected`;
+    const labelNode = trigger.querySelector(".property-popover-label");
+    const metaNode = trigger.querySelector(".property-popover-meta");
+    if (labelNode) {
+      labelNode.textContent = label;
+    }
+    if (metaNode) {
+      metaNode.textContent = meta;
+    }
+    trigger.classList.toggle("is-active", count > 0);
+  }
+
+  function openPropertyFilterPopover() {
+    const popover = byId("propertyFiltersPopover");
+    const trigger = byId("propertyFiltersTrigger");
+    if (!popover || !trigger) {
+      return;
+    }
+    applyFilterInputsFromState();
+    popover.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+  }
+
+  function closePropertyFilterPopover() {
+    const popover = byId("propertyFiltersPopover");
+    const trigger = byId("propertyFiltersTrigger");
+    if (!popover || !trigger) {
+      return;
+    }
+    popover.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+
+  function wirePropertyFilterPopover() {
+    const trigger = byId("propertyFiltersTrigger");
+    const popover = byId("propertyFiltersPopover");
+    const close = byId("propertyFiltersClose");
+    const confirm = byId("propertyFiltersConfirm");
+    if (!trigger || !popover) {
+      return;
+    }
+    trigger.addEventListener("click", () => {
+      if (popover.hidden) {
+        openPropertyFilterPopover();
+      } else {
+        closePropertyFilterPopover();
+      }
+    });
+    close?.addEventListener("click", closePropertyFilterPopover);
+    confirm?.addEventListener("click", closePropertyFilterPopover);
+    document.addEventListener("click", (event) => {
+      if (popover.hidden) {
+        return;
+      }
+      if (popover.contains(event.target) || trigger.contains(event.target)) {
+        return;
+      }
+      closePropertyFilterPopover();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closePropertyFilterPopover();
+      }
+    });
+    document.addEventListener("change", (event) => {
+      if (event.target instanceof HTMLElement && event.target.classList.contains("property-check")) {
+        syncFilterStateFromInputs();
+        updatePropertyFilterSummary();
+        renderConstraintSummary();
+      }
+    });
   }
 
   function updateDoubleSlider(name) {
@@ -380,8 +462,12 @@
     syncFilterStateFromInputs,
     clearFilterInputs,
     renderPropertyFilters,
+    updatePropertyFilterSummary,
     updateDoubleSlider,
     wireDoubleSlider,
+    openPropertyFilterPopover,
+    closePropertyFilterPopover,
+    wirePropertyFilterPopover,
     fetchPropertyFilters,
     loadFilterBounds,
   });
